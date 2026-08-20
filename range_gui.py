@@ -31,6 +31,7 @@ from platform_support import (
     notify as platform_notify,
     open_path as platform_open_path,
     play_sound as platform_play_sound,
+    show_error,
 )
 import scanner_core
 
@@ -361,18 +362,27 @@ def set_dock_icon():
 def main():
     configure_console()
     if webview is None:
-        raise SystemExit("缺少 pywebview，请先执行：python -m pip install -r requirements.txt")
+        message = "缺少 pywebview，请重新构建 Windows EXE 或安装项目依赖。"
+        if getattr(sys, "frozen", False):
+            show_error("靶场扫描助手", message)
+        raise SystemExit(message)
     api = Api()
-    webview.create_window(
-        title="靶场扫描助手",
-        url=str(GUI_DIR / "index.html"),
-        js_api=api,
-        width=1160,
-        height=780,
-        min_size=(1000, 660),
-        background_color="#f5f5f7",
-    )
-    webview.start(set_dock_icon)
+    try:
+        webview.create_window(
+            title="靶场扫描助手",
+            url=str(GUI_DIR / "index.html"),
+            js_api=api,
+            width=1160,
+            height=780,
+            min_size=(1000, 660),
+            background_color="#f5f5f7",
+        )
+        webview.start(set_dock_icon)
+    except Exception as exc:
+        message = f"桌面窗口启动失败：{exc!r}"
+        if getattr(sys, "frozen", False):
+            show_error("靶场扫描助手", message)
+        raise
 
 
 if __name__ == "__main__":

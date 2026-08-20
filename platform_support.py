@@ -16,9 +16,20 @@ import sys
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
-GUI_DIR = PROJECT_ROOT / "gui"
-RESULTS_ROOT = PROJECT_ROOT / "scan_results"
+APP_NAME = "靶场扫描助手"
+SOURCE_ROOT = Path(__file__).resolve().parent
+RESOURCE_ROOT = Path(getattr(sys, "_MEIPASS", SOURCE_ROOT))
+
+if getattr(sys, "frozen", False) and os.name == "nt":
+    # 冻结版资源位于 PyInstaller 临时/内部目录，扫描结果必须写入用户可写目录。
+    PROJECT_ROOT = Path(sys.executable).resolve().parent
+    DATA_ROOT = Path(os.environ.get("LOCALAPPDATA", Path.home())) / APP_NAME
+else:
+    PROJECT_ROOT = SOURCE_ROOT
+    DATA_ROOT = SOURCE_ROOT
+
+GUI_DIR = RESOURCE_ROOT / "gui"
+RESULTS_ROOT = DATA_ROOT / "scan_results"
 
 
 def default_results_dir(kind: str = "public") -> Path:
@@ -58,6 +69,18 @@ def configure_console() -> None:
             stream.reconfigure(encoding="utf-8", errors="replace")
         except (AttributeError, OSError):
             pass
+
+
+def show_error(title: str, message: str) -> None:
+    """在无控制台的冻结版 Windows 程序中显示启动错误。"""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(None, str(message), str(title), 0x10)
+    except (AttributeError, OSError):
+        pass
 
 
 def ping_command(ip: str, timeout: float) -> list[str]:

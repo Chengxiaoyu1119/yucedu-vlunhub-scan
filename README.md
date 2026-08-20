@@ -16,10 +16,13 @@
 - 首页截图和图表测试依赖：`playwright` 及 Chromium 浏览器。
 - Windows 的 pywebview 会优先使用 EdgeChromium，未安装 Edge Runtime 时回退到系统可用的 MSHTML 渲染器。
 - Windows 使用系统自带的 `ping`、`arp`、文件管理器和提示音；macOS 原有的通知、Finder、Dock 图标和提示音行为保留。
+- Windows 发布版使用 PyInstaller 把 Python、GUI 依赖和 Chromium 一起打包，不要求目标电脑单独安装 Python。
 
 ## 安装
 
-在项目根目录打开 PowerShell、命令提示符或 Terminal。下面的 `python` 是 Python 解释器，用来安装项目依赖并启动程序。
+Windows 发布版不需要安装 Python、pip、pywebview、Playwright 或 Chromium。构建者在 Windows 上生成 `dist\靶场扫描助手.exe` 后，双击 `启动靶场扫描.bat` 即可启动；启动器会优先使用 `dist` 目录中的 EXE，也支持把 EXE 与启动器放在同一目录。
+
+手动安装仅适合开发或命令行使用；下面的 `python` 是 Python 解释器。
 
 ```bash
 python -m pip install -r requirements.txt
@@ -30,7 +33,7 @@ python -m playwright install chromium
 
 ## 启动
 
-Windows：双击 `启动靶场扫描.bat`，启动器会保留控制台以显示依赖或运行错误；程序正常关闭后窗口自动退出。也可以执行：
+Windows：双击 `启动靶场扫描.bat`。它直接启动已打包的 `靶场扫描助手.exe`，不创建 `.venv`，也不要求目标电脑配置 Python 环境。若找不到 EXE，启动器会提示先运行 Windows 构建脚本。开发调试时也可以执行：
 
 ```powershell
 python range_gui.py
@@ -60,6 +63,8 @@ python range_internal.py --cidrs 192.168.3.0/24,192.168.4.0/24
 
 ```text
 range_gui.py          # pywebview 桌面 GUI 与 JS API 桥接
+build_windows.spec    # PyInstaller 单文件构建配置
+build_windows.ps1     # Windows EXE 构建脚本
 scanner_core.py       # 公网扫描核心
 internal_scanner.py   # 内网发现核心
 platform_support.py   # 路径、Ping/ARP、通知、文件管理器等平台适配
@@ -82,6 +87,16 @@ python test_report_charts.py
 ```
 
 两个 Playwright 测试需要先执行 `python -m playwright install chromium`。
+
+## 构建 Windows EXE
+
+在 Windows PowerShell 中执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build_windows.ps1
+```
+
+输出文件为 `dist\靶场扫描助手.exe`。EXE 内置 Python、pywebview、Playwright 和 Chromium；`.build_venv`、`build`、`dist` 只用于本地构建，均不会进入版本库。目标电脑运行 EXE 时不需要 Python、pip、pywebview 或 Playwright。冻结版扫描结果写入当前 Windows 用户的 `%LOCALAPPDATA%\靶场扫描助手\scan_results\`。
 
 ## 版本管理
 

@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .venv/
+.build_venv/
 venv/
 env/
 *.egg-info/
@@ -18,6 +19,8 @@ scan_results/
 test_shots/
 playwright-report/
 test-results/
+build/
+dist/
 
 # 本地工具/代理生成的元数据
 .zcode/

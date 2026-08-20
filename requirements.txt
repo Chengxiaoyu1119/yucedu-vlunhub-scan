@@ -1,6 +1,6 @@
-# 靶场扫描助手运行依赖
+# Runtime dependencies
 pywebview>=5.0,<6
 playwright>=1.40,<2
 
-# macOS Dock 图标支持；Windows 不安装此项
+# Optional macOS Dock icon support
 pyobjc-framework-Cocoa>=9; sys_platform == "darwin"

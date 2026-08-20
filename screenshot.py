@@ -11,10 +11,18 @@
 """
 
 import asyncio
+import os
 import queue
+import sys
 import threading
 from pathlib import Path
 from urllib.parse import urljoin
+
+
+if getattr(sys, "frozen", False):
+    # build_windows.spec 将 Chromium 放到 Playwright 的内置浏览器目录。
+    # 让冻结版优先从 _MEIPASS 中查找，而不是访问用户全局缓存。
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
 
 try:
     from playwright.async_api import async_playwright
