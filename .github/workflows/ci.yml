@@ -48,3 +48,16 @@ jobs:
         run: |
           bash -n "启动靶场扫描.command"
           test -x "启动靶场扫描.command"
+
+      - name: Smoke test macOS launcher
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          ./启动靶场扫描.command
+          sleep 5
+          gui_pid="$(ps -axo pid=,command= | awk '/[r]ange_gui.py/ {print $1; exit}')"
+          if [ -z "$gui_pid" ]; then
+            echo "range_gui.py did not remain running after launcher start"
+            exit 1
+          fi
+          kill "$gui_pid" || true
