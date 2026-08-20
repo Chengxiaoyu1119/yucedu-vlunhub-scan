@@ -33,7 +33,13 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from platform_support import parse_ping_output, ping_command, resolve_output_dir, user_agent
+from platform_support import (
+    hidden_subprocess_kwargs,
+    parse_ping_output,
+    ping_command,
+    resolve_output_dir,
+    user_agent,
+)
 
 UA = user_agent()
 MAX_BODY = 512 * 1024  # 首页最多抓取 512KB
@@ -51,7 +57,13 @@ def ping_host(ip: str, timeout: float) -> dict:
     """ICMP 存活探测；命令参数和输出解析由平台适配层处理。"""
     cmd = ping_command(ip, timeout)
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 3)
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout + 3,
+            **hidden_subprocess_kwargs(),
+        )
     except subprocess.TimeoutExpired:
         return {"alive": False, "latency_ms": None}
     out = proc.stdout + proc.stderr

@@ -3,6 +3,7 @@
 """平台适配层回归测试，不依赖桌面 GUI 或真实网络。"""
 
 import os
+import subprocess
 import unittest
 
 from platform_support import (
@@ -11,6 +12,7 @@ from platform_support import (
     parse_ping_output,
     ping_command,
     resolve_output_dir,
+    hidden_subprocess_kwargs,
 )
 
 
@@ -49,6 +51,13 @@ class PlatformSupportTests(unittest.TestCase):
             self.assertEqual(command[:2], ["ping", "-n"])
         else:
             self.assertIn("-c", command)
+
+    def test_windows_subprocess_window_policy(self):
+        options = hidden_subprocess_kwargs()
+        if os.name == "nt":
+            self.assertEqual(options["creationflags"], subprocess.CREATE_NO_WINDOW)
+        else:
+            self.assertEqual(options, {})
 
 
 if __name__ == "__main__":

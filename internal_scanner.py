@@ -28,7 +28,13 @@ from pathlib import Path
 
 import reports
 import scanner_core  # 复用 fetch_http
-from platform_support import parse_arp_output, parse_ping_output, ping_command, resolve_output_dir
+from platform_support import (
+    hidden_subprocess_kwargs,
+    parse_arp_output,
+    parse_ping_output,
+    ping_command,
+    resolve_output_dir,
+)
 
 DEFAULT_CIDRS = ["192.168.3.0/24", "192.168.4.0/24"]
 DEFAULT_PORTS = [22, 80, 443, 135, 139, 445, 3389, 8080]
@@ -38,8 +44,13 @@ HTTP_PORTS = (80, 443, 8080)
 def arp_table() -> dict:
     """读取本机 ARP 缓存并统一返回 `{ip: mac}`。"""
     try:
-        out = subprocess.run(["arp", "-a"], capture_output=True, text=True,
-                             timeout=5).stdout
+        out = subprocess.run(
+            ["arp", "-a"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            **hidden_subprocess_kwargs(),
+        ).stdout
     except (OSError, subprocess.TimeoutExpired):
         return {}
     return parse_arp_output(out)
@@ -49,7 +60,13 @@ def ping_full(ip: str, timeout: float) -> dict:
     """ICMP 探测并解析 TTL（用于 OS 推断）与时延。"""
     cmd = ping_command(ip, timeout)
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout + 2,
+            **hidden_subprocess_kwargs(),
+        )
     except subprocess.TimeoutExpired:
         return {"alive": False, "ttl": None, "latency_ms": None}
     out = proc.stdout + proc.stderr

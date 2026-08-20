@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from playwright.async_api import async_playwright
+from platform_support import configure_console
 from reports import write_public_report, write_internal_report
 
 OUT = Path(__file__).resolve().parent / "test_shots"
@@ -55,6 +56,7 @@ INTERNAL_HOSTS = [
 
 
 async def main():
+    configure_console()
     pub_dir = OUT / "mock_public"
     int_dir = OUT / "mock_internal"
     pub_dir.mkdir(exist_ok=True)

@@ -88,6 +88,15 @@ function setStatus(text, active) {
   $("statusDot").classList.toggle("on", !!active);
 }
 
+function applyPlatformTheme() {
+  const ua = navigator.userAgent || "";
+  const isWindows = /Windows NT|Windows/i.test(ua);
+  const isMac = !isWindows && /Macintosh|Mac OS X/i.test(ua);
+  document.body.classList.toggle("platform-windows", isWindows);
+  document.body.classList.toggle("platform-macos", isMac);
+  document.documentElement.dataset.platform = isWindows ? "windows" : (isMac ? "macos" : "other");
+}
+
 /* 截图/图标读取（带缓存；跨扫描保留，容量超限自动清理最旧部分） */
 async function shotData(resultsDir, filename) {
   const key = resultsDir + "/" + filename;
@@ -433,8 +442,9 @@ function setScanning(on, mode) {
   const btn = mode === "internal" ? $("btnInternal") : $("btnScan");
   const otherBtn = mode === "internal" ? $("btnScan") : $("btnInternal");
   ["inpTargets", "inpPortStart", "inpPortEnd", "inpThreads", "inpTimeout",
-   "inpCidrs", "inpPorts", "inpThreads2", "inpTimeout2"]
+   "inpPortsList", "inpShots", "inpCidrs", "inpPorts", "inpThreads2", "inpTimeout2"]
     .forEach((id) => { $(id).disabled = on; });
+  document.querySelectorAll(".preset-btn").forEach((button) => { button.disabled = on; });
   document.querySelector(".switch").classList.toggle("disabled", on);
 
   if (on) {
@@ -546,7 +556,18 @@ function collectInternalParams() {
 /* ---------- 事件分发 ---------- */
 
 function handleEvent(evt) {
-  if (evt.type === "error") { log("error", evt.message); return; }
+  if (evt.type === "error") {
+    log("error", evt.message);
+    if (evt.fatal) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      const suffix = scanMode === "internal" ? "2" : "";
+      setScanning(false, scanMode);
+      setBar(suffix, 100, "扫描失败");
+      logBanner("error", "扫描未完成，请检查参数和运行环境");
+    }
+    return;
+  }
 
   /* ---- 公共结束 ---- */
   if (evt.type === "scan_done") {
@@ -1398,6 +1419,7 @@ async function init() {
 }
 
 function bindUI() {
+  applyPlatformTheme();
   document.querySelectorAll(".nav-item").forEach((el) => {
     el.addEventListener("click", () => switchPage(el.dataset.page));
   });

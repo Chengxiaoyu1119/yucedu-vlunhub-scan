@@ -71,6 +71,13 @@ def configure_console() -> None:
             pass
 
 
+def hidden_subprocess_kwargs() -> dict:
+    """为 Windows 子进程关闭额外控制台窗口；其它平台不添加参数。"""
+    if os.name == "nt":
+        return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+    return {}
+
+
 def show_error(title: str, message: str) -> None:
     """在无控制台的冻结版 Windows 程序中显示启动错误。"""
     if os.name != "nt":
@@ -135,9 +142,9 @@ def open_path(path: Path) -> bool:
         if os.name == "nt":
             os.startfile(resolved)  # type: ignore[attr-defined]
         elif sys.platform == "darwin":
-            subprocess.run(["open", resolved], check=False)
+            subprocess.run(["open", resolved], check=False, **hidden_subprocess_kwargs())
         else:
-            subprocess.run(["xdg-open", resolved], check=False)
+            subprocess.run(["xdg-open", resolved], check=False, **hidden_subprocess_kwargs())
         return True
     except (OSError, ValueError):
         return False
@@ -153,6 +160,7 @@ def notify(title: str, message: str) -> bool:
                 ["osascript", "-e", f'display notification "{message}" with title "{title}"'],
                 check=False,
                 timeout=5,
+                **hidden_subprocess_kwargs(),
             )
             return True
         if os.name == "nt":
@@ -162,6 +170,7 @@ def notify(title: str, message: str) -> bool:
                 ["msg", user, "/TIME:5", f"{title}: {message}"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                **hidden_subprocess_kwargs(),
             )
             return True
         binary = shutil.which("notify-send")
@@ -204,6 +213,7 @@ def delete_path(path: Path) -> tuple[bool, str]:
                 ["osascript", "-e", osa],
                 capture_output=True,
                 timeout=20,
+                **hidden_subprocess_kwargs(),
             )
             if result.returncode == 0 and not path.exists():
                 return True, ""

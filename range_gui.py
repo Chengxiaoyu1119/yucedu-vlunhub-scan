@@ -129,7 +129,7 @@ class Api:
                     ports=port_list,
                 )
             except Exception as e:
-                self.evt_queue.put({"type": "error", "message": repr(e)})
+                self.evt_queue.put({"type": "error", "message": repr(e), "fatal": True})
 
         self.scan_thread = threading.Thread(target=worker, daemon=True)
         self.scan_thread.start()
@@ -175,7 +175,7 @@ class Api:
                     cancel=self.cancel,
                 )
             except Exception as e:
-                self.evt_queue.put({"type": "error", "message": repr(e)})
+                self.evt_queue.put({"type": "error", "message": repr(e), "fatal": True})
 
         self.scan_thread = threading.Thread(target=worker, daemon=True)
         self.scan_thread.start()

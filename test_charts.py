@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from playwright.async_api import async_playwright
+from platform_support import configure_console
 
 GUI = Path(__file__).resolve().parent / "gui"
 OUT = Path(__file__).resolve().parent / "test_shots"
@@ -99,6 +100,7 @@ window.pywebview = {
 
 
 async def main():
+    configure_console()
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page(viewport={"width": 1160, "height": 800})

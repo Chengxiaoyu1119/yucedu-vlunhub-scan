@@ -1,6 +1,10 @@
 # 靶场扫描助手
 
-一个面向靶场环境的双模式信息收集工具，提供 macOS 和 Windows 桌面启动方式，也支持命令行运行。
+一个面向靶场环境的双模式信息收集工具，提供 macOS 和 Windows 桌面启动方式，也支持命令行运行。扫描结果只保存到本地，不上传目标数据。
+
+仓库地址：[Chengxiaoyu1119/yucedu-vulanhub-scan](https://github.com/Chengxiaoyu1119/yucedu-vulanhub-scan)
+
+最新 Windows 发行版：[Releases](https://github.com/Chengxiaoyu1119/yucedu-vulanhub-scan/releases/latest)
 
 ## 功能
 
@@ -8,6 +12,7 @@
 - 内网穿透靶场：ICMP + TCP 存活发现、TTL/端口指纹/SSH Banner/HTTP 标题辅助系统判断、ARP MAC 地址读取。
 - 桌面界面：进度、日志、站点卡片、搜索排序、截图灯箱、离线图表和历史记录。
 - 每次扫描生成 `report.html`、`report.md`、`report.csv`、`report.json`。
+- 内网模式只做无凭据发现，不做登录、爆破或漏洞利用。
 
 ## 环境
 
@@ -17,10 +22,11 @@
 - Windows 的 pywebview 会优先使用 EdgeChromium，未安装 Edge Runtime 时回退到系统可用的 MSHTML 渲染器。
 - Windows 使用系统自带的 `ping`、`arp`、文件管理器和提示音；macOS 原有的通知、Finder、Dock 图标和提示音行为保留。
 - Windows 发布版使用 PyInstaller 把 Python、GUI 依赖和 Chromium 一起打包，不要求目标电脑单独安装 Python。
+- Windows 页面使用 Segoe UI / Fluent 风格，macOS 保留原有 Apple 风格；业务扫描核心和报告格式在两端共用。
 
 ## 安装
 
-Windows 发布版不需要安装 Python、pip、pywebview、Playwright 或 Chromium。构建者在 Windows 上生成 `dist\靶场扫描助手.exe` 后，双击 `启动靶场扫描.bat` 即可启动；启动器会优先使用 `dist` 目录中的 EXE，也支持把 EXE 与启动器放在同一目录。
+Windows 发布版不需要安装 Python、pip、pywebview、Playwright 或 Chromium。构建者在 Windows 上生成 `dist\靶场扫描助手.exe` 后，双击 `启动靶场扫描.vbs` 即可无控制台启动；启动器会优先使用 `dist` 目录中的 EXE，也支持把 EXE 与启动器放在同一目录。
 
 手动安装仅适合开发或命令行使用；下面的 `python` 是 Python 解释器。
 
@@ -33,7 +39,7 @@ python -m playwright install chromium
 
 ## 启动
 
-Windows：双击 `启动靶场扫描.bat`。它直接启动已打包的 `靶场扫描助手.exe`，不创建 `.venv`，也不要求目标电脑配置 Python 环境。若找不到 EXE，启动器会提示先运行 Windows 构建脚本。开发调试时也可以执行：
+Windows：双击 `启动靶场扫描.vbs`。它直接启动已打包的 `靶场扫描助手.exe`，不弹出 cmd 窗口，不创建 `.venv`，也不要求目标电脑配置 Python 环境。`启动靶场扫描.bat` 仅作为旧快捷方式兼容入口；若找不到 EXE，启动器会提示先运行 Windows 构建脚本。开发调试时也可以执行：
 
 ```powershell
 python range_gui.py
@@ -74,7 +80,8 @@ range_scanner.py      # 公网 CLI
 range_internal.py     # 内网 CLI
 gui/                  # HTML/CSS/JavaScript/本地 Chart.js
 启动靶场扫描.command  # macOS 启动器，保留
-启动靶场扫描.bat     # Windows 启动器
+启动靶场扫描.vbs      # Windows 无控制台启动器
+启动靶场扫描.bat      # Windows 旧快捷方式兼容入口
 ```
 
 ## 验证
@@ -88,6 +95,8 @@ python test_report_charts.py
 
 两个 Playwright 测试需要先执行 `python -m playwright install chromium`。
 
+推送到 GitHub 后，`.github/workflows/ci.yml` 会在 Windows 和 macOS runner 上分别执行语法检查、平台测试和两个图表测试；macOS runner 还会检查 `.command` 启动器语法与可执行权限。
+
 ## 构建 Windows EXE
 
 在 Windows PowerShell 中执行：
@@ -97,6 +106,8 @@ powershell -ExecutionPolicy Bypass -File .\build_windows.ps1
 ```
 
 输出文件为 `dist\靶场扫描助手.exe`。EXE 内置 Python、pywebview、Playwright 和 Chromium；`.build_venv`、`build`、`dist` 只用于本地构建，均不会进入版本库。目标电脑运行 EXE 时不需要 Python、pip、pywebview 或 Playwright。冻结版扫描结果写入当前 Windows 用户的 `%LOCALAPPDATA%\靶场扫描助手\scan_results\`。
+
+发行包建议包含：`靶场扫描助手.exe`、`启动靶场扫描.vbs` 和本 README。不要把 `.build_venv`、`build`、扫描结果、测试截图或缓存打进发行包。
 
 ## 版本管理
 
