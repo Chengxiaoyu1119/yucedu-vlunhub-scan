@@ -1,0 +1,27 @@
+# Python 缓存与本地环境
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+
+# macOS / Windows 系统文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 本地运行产物：扫描结果和测试截图不进入版本库
+scan_results/
+test_shots/
+playwright-report/
+test-results/
+
+# 本地工具/代理生成的元数据
+.zcode/
+
+# 日志与临时文件
+*.log
+*.tmp

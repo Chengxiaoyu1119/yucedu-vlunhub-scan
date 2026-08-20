@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>靶场扫描助手</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ 侧边栏 ============ -->
+  <aside class="sidebar">
+    <div class="nav-group-label first">扫描模式</div>
+    <nav class="nav">
+      <button class="nav-item active" data-page="scan">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="2.4"/><path d="M4.2 19.8 9.5 9.5l10.3-5.3L14.5 14.5z"/>
+        </svg>
+        <span>公网 Web 靶场</span>
+      </button>
+      <button class="nav-item" data-page="internal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <rect x="3" y="4" width="18" height="7" rx="1.6"/><rect x="3" y="13.5" width="18" height="7" rx="1.6"/>
+          <circle cx="6.6" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.6" cy="17" r=".5" fill="currentColor"/>
+        </svg>
+        <span>内网穿透靶场</span>
+      </button>
+    </nav>
+
+    <div class="nav-group-label">工具</div>
+    <nav class="nav">
+      <button class="nav-item" data-page="history">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3.2 1.9"/>
+        </svg>
+        <span>历史记录</span>
+      </button>
+      <button class="nav-item" data-page="about">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8.6"/><path d="M12 11v5.2"/><circle cx="12" cy="7.8" r=".4" fill="currentColor"/>
+        </svg>
+        <span>关于</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">就绪</span>
+    </div>
+  </aside>
+
+  <!-- ============ 主区域 ============ -->
+  <main class="main">
+
+    <div class="pages">
+
+      <!-- ===== 公网 Web 靶场 ===== -->
+      <section id="page-scan" class="page active">
+        <header class="page-header">
+          <h1>公网 Web 靶场</h1>
+          <p class="subtitle">存活探测 · 端口递增扫描 · 网站标题与首页截图</p>
+        </header>
+
+        <div class="card config-card">
+          <div class="config-grid">
+            <label class="field field-wide">
+              <span>目标 IP（逗号分隔）</span>
+              <input id="inpTargets" type="text" spellcheck="false"
+                     placeholder="43.139.231.237,43.139.149.11">
+            </label>
+            <label class="field">
+              <span>起始端口</span>
+              <input id="inpPortStart" type="number" min="1" max="65535">
+            </label>
+            <label class="field">
+              <span>结束端口</span>
+              <input id="inpPortEnd" type="number" min="1" max="65535">
+            </label>
+            <label class="field">
+              <span>并发线程</span>
+              <input id="inpThreads" type="number" min="1" max="1000">
+            </label>
+            <label class="field">
+              <span>超时（秒）</span>
+              <input id="inpTimeout" type="number" min="0.5" max="30" step="0.5">
+            </label>
+            <div class="field field-check">
+              <span>首页截图</span>
+              <label class="switch"><input type="checkbox" id="inpShots" checked><i></i></label>
+            </div>
+            <label class="field field-wide2">
+              <span>端口列表（可选，逗号分隔）</span>
+              <input id="inpPortsList" type="text" spellcheck="false"
+                     placeholder="留空则按上方端口范围扫描；填列表则优先扫描这些端口，如 21,22,80,443,3306,6379,8080">
+            </label>
+          </div>
+          <div class="config-actions">
+            <button id="btnScan" class="btn-primary">开始扫描</button>
+            <span class="preset-label">端口预设</span>
+            <div class="preset-group">
+              <button class="preset-btn" data-ps="80" data-pe="8999">Web 常用</button>
+              <button class="preset-btn" data-ports="21,22,23,25,53,80,110,135,139,143,161,389,443,445,465,514,587,636,873,993,995,1080,1099,1433,1521,2049,2181,2375,2379,3000,3306,3389,4369,5000,5432,5601,5672,5900,5984,6000,6379,7001,7002,8000,8008,8009,8010,8020,8043,8060,8080,8081,8085,8086,8088,8090,8161,8200,8443,8888,8899,9000,9001,9042,9092,9096,9200,9300,9418,9999,10000,10050,10250,11211,15672,16379,18080,27017,27018,28017,50000,60000,65535">全量端口</button>
+              <button class="preset-btn" data-ps="8000" data-pe="8099">恢复默认</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-area" id="progressArea" hidden>
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-row">
+            <span class="progress-pos" id="targetPos" hidden></span>
+            <span class="progress-text" id="progressText">准备中…</span>
+            <span class="progress-pct" id="progressPct"></span>
+          </div>
+          <button class="btn-open report-btn" id="btnReport" hidden>查看本次报告</button>
+        </div>
+
+        <div class="stats-bar" id="statsBar" hidden>
+          <div class="stat-chip target">
+            <svg class="chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+            <div class="chip-body"><b id="stTargets">0</b><span>目标</span></div>
+          </div>
+          <div class="stat-chip alive">
+            <svg class="chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-5 3 10 2.5-5h6"/></svg>
+            <div class="chip-body"><b id="stAlive">0</b><span>ping 存活</span></div>
+          </div>
+          <div class="stat-chip ports">
+            <svg class="chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><circle cx="6.6" cy="7.5" r=".4" fill="currentColor"/><circle cx="6.6" cy="16.5" r=".4" fill="currentColor"/></svg>
+            <div class="chip-body"><b id="stPorts">0</b><span>开放端口</span></div>
+          </div>
+          <div class="stat-chip sites">
+            <svg class="chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M3.5 9.5h17"/></svg>
+            <div class="chip-body"><b id="stSites">0</b><span>网站</span></div>
+          </div>
+          <div class="stat-chip shots">
+            <svg class="chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 7l2-3h4l2 3"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+            <div class="chip-body"><b id="stShots">0</b><span>截图</span></div>
+          </div>
+        </div>
+        <div class="scan-summary" id="scanSummary" hidden></div>
+
+        <div class="results-head">
+          <h2>发现站点</h2>
+          <span class="count-badge" id="resultCount" hidden>0</span>
+          <div class="results-tools">
+            <input id="siteSearch" class="tool-search" type="text" spellcheck="false"
+                   placeholder="搜索 IP / 端口 / 标题">
+            <select id="siteSort" class="tool-select" title="排序方式">
+              <option value="default">发现顺序</option>
+              <option value="port">按端口号</option>
+              <option value="status">按状态码</option>
+              <option value="ip">按 IP</option>
+            </select>
+          </div>
+        </div>
+        <div class="results-grid" id="resultsGrid">
+          <div class="empty-hint" id="emptyHint">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.4" stroke-linecap="round" opacity=".45">
+              <circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>
+            </svg>
+            <p>① 填入目标 IP 与端口范围 → ② 点击「开始扫描」</p>
+            <p class="sub">完成后可在此查看站点卡片与首页截图，支持搜索与排序</p>
+          </div>
+        </div>
+
+        <!-- ===== 扫描数据看板 ===== -->
+        <div class="dashboard" id="publicDash" hidden>
+          <div class="dash-titlebar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+            <span>扫描数据看板</span>
+          </div>
+          <div class="dash-grid">
+            <div class="chart-card">
+              <div class="chart-head">端口分布</div>
+              <div class="chart-wrap"><canvas id="chartPortDist"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">HTTP 状态码</div>
+              <div class="chart-wrap"><canvas id="chartHttpStatus"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">各目标端口数</div>
+              <div class="chart-wrap"><canvas id="chartTargetBar"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">服务类型占比</div>
+              <div class="chart-wrap"><canvas id="chartServiceType"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 内网穿透靶场 ===== -->
+      <section id="page-internal" class="page">
+        <header class="page-header">
+          <h1>内网穿透靶场</h1>
+          <p class="subtitle">主机存活发现 · 系统判断（Linux / Windows）· 无凭据探测</p>
+        </header>
+
+        <div class="notice">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="8.6"/><path d="M12 11v5.2"/><circle cx="12" cy="7.8" r=".4" fill="currentColor"/>
+          </svg>
+          请先连接向日葵 VPN，再启动内网扫描；探测全程不使用账号密码。
+        </div>
+
+        <div class="card config-card">
+          <div class="config-grid internal-grid">
+            <label class="field field-wide">
+              <span>网段（CIDR，逗号分隔）</span>
+              <input id="inpCidrs" type="text" spellcheck="false"
+                     placeholder="192.168.3.0/24,192.168.4.0/24">
+            </label>
+            <label class="field field-wide2">
+              <span>探测端口（逗号分隔）</span>
+              <input id="inpPorts" type="text" spellcheck="false"
+                     placeholder="22,80,443,135,139,445,3389,8080">
+            </label>
+            <label class="field">
+              <span>并发线程</span>
+              <input id="inpThreads2" type="number" min="1" max="1000">
+            </label>
+            <label class="field">
+              <span>超时（秒）</span>
+              <input id="inpTimeout2" type="number" min="0.5" max="10" step="0.5">
+            </label>
+          </div>
+          <div class="config-actions">
+            <button id="btnInternal" class="btn-primary">开始内网扫描</button>
+          </div>
+        </div>
+
+        <div class="progress-area" id="progressArea2" hidden>
+          <div class="progress-track"><div class="progress-fill" id="progressFill2"></div></div>
+          <div class="progress-row">
+            <span class="progress-text" id="progressText2">准备中…</span>
+            <span class="progress-pct" id="progressPct2"></span>
+          </div>
+          <button class="btn-open report-btn" id="btnReport2" hidden>查看本次报告</button>
+        </div>
+
+        <div class="stats-bar" id="statsBar2" hidden>
+          <div class="stat-chip alive">
+            <svg class="chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><circle cx="6.6" cy="7.5" r=".4" fill="currentColor"/><circle cx="6.6" cy="16.5" r=".4" fill="currentColor"/></svg>
+            <div class="chip-body"><b id="stAlive2">0</b><span>存活主机</span></div>
+          </div>
+          <div class="stat-chip linux">
+            <svg class="chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>
+            <div class="chip-body"><b id="stLinux">0</b><span>Linux</span></div>
+          </div>
+          <div class="stat-chip windows">
+            <svg class="chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1.2"/><rect x="13" y="3" width="8" height="8" rx="1.2"/><rect x="3" y="13" width="8" height="8" rx="1.2"/><rect x="13" y="13" width="8" height="8" rx="1.2"/></svg>
+            <div class="chip-body"><b id="stWin">0</b><span>Windows</span></div>
+          </div>
+          <div class="stat-chip unknown">
+            <svg class="chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.3c-.7.3-1.1 1-1.1 1.7"/><circle cx="12" cy="16.8" r=".5" fill="currentColor"/></svg>
+            <div class="chip-body"><b id="stUnknown">0</b><span>未识别</span></div>
+          </div>
+        </div>
+        <div class="scan-summary" id="scanSummary2" hidden></div>
+
+        <div class="results-head">
+          <h2>存活主机</h2>
+          <span class="count-badge" id="hostCount" hidden>0</span>
+        </div>
+
+        <!-- ===== 内网扫描数据看板 ===== -->
+        <div class="dashboard" id="internalDash" hidden>
+          <div class="dash-titlebar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+            <span>内网扫描数据看板</span>
+          </div>
+          <div class="dash-grid">
+            <div class="chart-card">
+              <div class="chart-head">操作系统分布</div>
+              <div class="chart-wrap"><canvas id="chartOSDist"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">端口开放热度</div>
+              <div class="chart-wrap"><canvas id="chartPortHeat"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">发现方式</div>
+              <div class="chart-wrap"><canvas id="chartDiscover"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">TTL 分布</div>
+              <div class="chart-wrap"><canvas id="chartTTLDist"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <table class="host-table" id="hostTable">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="ip">IP</th>
+                <th>发现</th>
+                <th class="sortable" data-sort="ttl">TTL</th>
+                <th class="sortable" data-sort="os">系统判断</th>
+                <th class="sortable" data-sort="ports">开放端口</th>
+                <th>MAC 地址</th>
+                <th>依据</th>
+              </tr>
+            </thead>
+            <tbody id="hostRows">
+              <tr class="empty-row"><td colspan="7">
+                <div class="empty-hint">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       stroke-width="1.4" stroke-linecap="round" opacity=".45">
+                    <rect x="3" y="5" width="18" height="6.5" rx="1.6"/><rect x="3" y="13.5" width="18" height="6.5" rx="1.6"/>
+                  </svg>
+                  <p>① 连接向日葵 VPN → ② 填写网段 → ③ 点击「开始内网扫描」</p>
+                  <p class="sub">结果自动按 Linux / Windows / 未识别 分组，并生成分类报告</p>
+                </div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== 历史记录 ===== -->
+      <section id="page-history" class="page">
+        <header class="page-header">
+          <h1>历史记录</h1>
+          <p class="subtitle">最近的扫描运行 · 可查看分类报告或在系统文件管理器中打开</p>
+        </header>
+        <div class="card history-card" id="historyCard">
+          <div class="history-tools">
+            <input id="historySearch" class="tool-search" type="text" spellcheck="false"
+                   placeholder="搜索时间 / 目标 / 摘要">
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </div>
+      </section>
+
+      <!-- ===== 关于 ===== -->
+      <section id="page-about" class="page">
+        <header class="page-header">
+          <h1>关于</h1>
+          <p class="subtitle">靶场扫描助手 v2.0 · macOS / Windows</p>
+        </header>
+        <div class="card about-card">
+          <p>双模式靶场信息收集工具：</p>
+          <ul>
+            <li><b>公网 Web 靶场</b> — ICMP 存活探测、端口递增扫描、HTTP/HTTPS 首页抓取、Playwright 首页截图</li>
+            <li><b>内网穿透靶场</b> — ICMP + TCP 存活发现、TTL / 端口指纹 / SSH Banner 多信号系统判断（无需凭据）</li>
+          </ul>
+          <p>每次扫描自动生成分类报告：report.html（内嵌截图）/ report.md / report.csv / report.json。</p>
+          <ul>
+            <li>命令行：<code>python3 range_scanner.py</code></li>
+            <li>图形界面：macOS 双击 <code>启动靶场扫描.command</code>，Windows 双击 <code>启动靶场扫描.bat</code></li>
+          </ul>
+          <p class="footnote">仅用于授权靶场环境的安全教学与测试；内网模式不做爆破、不登录、不利用漏洞。</p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ===== 共享日志控制台（固定在底部，可折叠） ===== -->
+    <div class="console-card" id="consoleCard">
+      <div class="console-titlebar" id="consoleToggle">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="console-title">扫描日志</span>
+        <button class="btn-ghost" id="btnClearLog">清空</button>
+        <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="m6 14 6-6 6 6"/>
+        </svg>
+      </div>
+      <div class="console" id="console"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== 截图灯箱 ===== -->
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lightbox-mask" id="lightboxMask"></div>
+  <div class="lightbox-body">
+    <div class="lightbox-head">
+      <span id="lightboxTitle"></span>
+      <button class="btn-ghost light-close" id="lightboxClose">关闭 ✕</button>
+    </div>
+    <img id="lightboxImg" alt="首页截图大图">
+  </div>
+</div>
+
+<!-- ===== 历史看板弹窗 ===== -->
+<div class="modal" id="dashModal" hidden>
+  <div class="modal-mask" id="dashModalMask"></div>
+  <div class="modal-body">
+      <div class="modal-head">
+        <div class="modal-head-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/>
+            <rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/>
+            <rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+          <span id="dashModalTitle">扫描数据看板</span>
+          <span class="modal-kind" id="dashModalKind"></span>
+        </div>
+        <div class="modal-head-actions">
+          <button class="btn-ghost" id="dashModalMax">全屏</button>
+          <button class="btn-ghost light-close" id="dashModalClose">关闭 ✕</button>
+        </div>
+      </div>
+    <div class="modal-charts" id="dashModalCharts">
+      <div class="dash-grid" id="dashModalGrid"></div>
+      <div class="modal-empty" id="dashModalEmpty">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.4" stroke-linecap="round" opacity=".4">
+          <rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/>
+        </svg>
+        <p>暂无图表数据</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

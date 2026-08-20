@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""靶场扫描 CLI 入口（核心逻辑在 scanner_core.py，GUI 与 CLI 共用）
+
+用法：
+  python3 range_scanner.py                      # 默认扫描两个靶场 IP 的 8000-8099
+  python3 range_scanner.py --port-end 8199      # 自定义端口上限
+  python3 range_scanner.py --targets 1.2.3.4    # 自定义目标 IP
+"""
+
+import argparse
+
+from platform_support import configure_console, resolve_output_dir
+import scanner_core
+
+
+def parse_args():
+    p = argparse.ArgumentParser(description="靶场端口扫描 + 网站首页抓取脚本")
+    p.add_argument("--targets", default=",".join(scanner_core.DEFAULT_TARGETS),
+                   help="目标 IP，逗号分隔（默认：43.139.231.237,43.139.149.11）")
+    p.add_argument("--port-start", type=int, default=8000, help="起始端口（默认 8000）")
+    p.add_argument("--port-end", type=int, default=8099, help="结束端口（默认 8099）")
+    p.add_argument("--timeout", type=float, default=2.0, help="连接/请求超时秒数（默认 2）")
+    p.add_argument("--threads", type=int, default=100, help="并发线程数（默认 100）")
+    p.add_argument("--output", default="", help="结果输出目录（默认 scan_results/<时间戳>）")
+    p.add_argument("--no-screenshot", action="store_true", help="跳过网站首页截图")
+    args = p.parse_args()
+    if args.port_end < args.port_start:
+        p.error("--port-end 不能小于 --port-start")
+    if args.threads < 1:
+        p.error("--threads 至少为 1")
+    return args
+
+
+def print_event(evt):
+    t = evt["type"]
+    if t == "target_start":
+        print(f"\n=== 目标 {evt['ip']} ===")
+    elif t == "ping":
+        if evt["alive"]:
+            ms = evt["latency_ms"]
+            print("  [ping] 通" + (f"（{ms:.1f} ms）" if ms is not None else ""))
+        else:
+            print("  [ping] 不通（云服务器可能禁 ICMP，继续端口扫描）")
+    elif t == "progress":
+        if evt["done"] % 25 == 0 or evt["done"] == evt["total"]:
+            print(f"  进度 {evt['done']}/{evt['total']}")
+    elif t == "port_found":
+        r = evt
+        if r.get("is_http"):
+            print(f"  [+] {r['port']} 开放  {r['scheme']}://{r['ip']}:{r['port']}  "
+                  f"状态 {r['status']}  title: {r['title'] or '(无)'}")
+        else:
+            print(f"  [+] {r['port']} 开放（非 HTTP：{r.get('error', '')}）")
+    elif t == "phase":
+        if evt["phase"] == "screenshots":
+            print("  端口扫描完成，正在截取网站首页…")
+    elif t == "screenshot_done":
+        if evt["ok"]:
+            print(f"  [截图] {evt['ip']}:{evt['port']} 完成 → {evt['path']}")
+        else:
+            print(f"  [截图] {evt['ip']}:{evt['port']} 失败：{evt.get('error', '')}")
+    elif t == "target_done":
+        c = "（已取消）" if evt["cancelled"] else ""
+        print(f"  扫描完成{c}：开放端口 {evt['open_count']} 个 / 共 {evt['total']} 个")
+    elif t == "error":
+        print(f"  [错误] {evt['message']}")
+
+
+def main():
+    configure_console()
+    args = parse_args()
+    targets = [t.strip() for t in args.targets.split(",") if t.strip()]
+    outdir = resolve_output_dir(args.output, "public")
+    print(f"靶场扫描启动：目标 {', '.join(targets)}，"
+          f"端口 {args.port_start}-{args.port_end}，{args.threads} 线程，结果目录 {outdir}")
+
+    results = scanner_core.run_scan(
+        targets=targets,
+        port_start=args.port_start,
+        port_end=args.port_end,
+        timeout=args.timeout,
+        threads=args.threads,
+        output=str(outdir),
+        on_event=print_event,
+        screenshots=not args.no_screenshot,
+    )
+
+    print("\n========== 扫描汇总 ==========")
+    for t in results:
+        ping_desc = "ping 通" if t["ping"]["alive"] else "ping 不通"
+        open_ports = sorted(r["port"] for r in t["ports"].values() if r["state"] == "open")
+        port_desc = ", ".join(map(str, open_ports)) if open_ports else "无开放端口"
+        print(f"{t['ip']}：{ping_desc}；开放端口（{t['open_count']} 个）：{port_desc}")
+
+
+if __name__ == "__main__":
+    main()
