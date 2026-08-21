@@ -3,4 +3,4 @@
 # Chromium's built-in headless command.
 pywebview>=5.0,<6
 playwright>=1.40,<2
-pyinstaller>=6.0,<7
+pyinstaller>=6.22.2,<7
