@@ -2,5 +2,5 @@
 # The Playwright runtime itself stays out of the EXE; Windows screenshots use
 # Chromium's built-in headless command.
 pywebview>=5.0,<6
-playwright>=1.40,<2
+playwright>=1.62.0,<2
 pyinstaller>=6.0,<7
