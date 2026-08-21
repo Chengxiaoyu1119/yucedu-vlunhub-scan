@@ -67,7 +67,11 @@ jobs:
           $browser = Get-ChildItem .artifacts\dist\playwright-browsers -Recurse -Filter chrome.exe -File |
             Select-Object -First 1
           if (-not $browser) { throw "发行目录没有完整 Chromium：.artifacts\dist\playwright-browsers" }
-          if ($browser.Length -lt 10MB) { throw "Chromium 主程序体积异常：$($browser.Length) bytes" }
+          $browserFiles = Get-ChildItem .artifacts\dist\playwright-browsers -Recurse -File
+          $browserBytes = ($browserFiles | Measure-Object -Property Length -Sum).Sum
+          if ($browserBytes -lt 100MB) {
+            throw "Chromium 发行资源体积异常：$([math]::Round($browserBytes / 1MB, 1)) MB"
+          }
 
       - name: Check macOS launcher
         if: runner.os == 'macOS'

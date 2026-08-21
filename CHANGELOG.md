@@ -4,7 +4,11 @@
 
 ## [Unreleased]
 
-- Windows 默认发行包恢复公网首页截图：Playwright 运行时进入 EXE，Chromium 作为同级 `playwright-browsers/` 资源随包提供。
+后续变更将在新的版本号下记录。
+
+## [v2.1.2] - 2026-08-21
+
+- Windows 默认发行包恢复公网首页截图：Playwright 协议运行时进入 EXE，Chromium 和 Node 驱动作为同级 `playwright-browsers/`、`playwright-runtime/` 资源随包提供。
 - Windows 截图显式启动完整 Chromium 并绕过系统代理，兼容 `--no-shell` 发行资源，修复页面加载超时和截图回传失败。
 - 公网结果统一过滤为 Ping 存活、页面可访问且标题非空的靶场页面，报告、历史看板和站点卡片保持一致。
 - 增加 Windows 发行包组装脚本，统一 EXE、VBS、README、预览图和 Chromium 的文件边界。
@@ -31,7 +35,8 @@
 - 提供 Windows 便携式桌面发行包。
 - 公网 Web 与内网发现共用扫描核心，输出 HTML、Markdown、CSV、JSON 报告。
 
-[Unreleased]: https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/compare/v2.1.2...HEAD
+[v2.1.2]: https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases/tag/v2.1.2
 [v2.1.1]: https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases/tag/v2.1.1
 [v2.1.0]: https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases/tag/v2.1.0
 [v2.0.0]: https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases/tag/v2.0.0
