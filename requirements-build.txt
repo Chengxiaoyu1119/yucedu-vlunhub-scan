@@ -1,6 +1,6 @@
 # The Windows build uses Playwright's installer to stage external Chromium.
 # The Playwright runtime itself stays out of the EXE; Windows screenshots use
 # Chromium's built-in headless command.
-pywebview>=5.0,<6
+pywebview>=6.2.1,<7
 playwright>=1.40,<2
 pyinstaller>=6.0,<7

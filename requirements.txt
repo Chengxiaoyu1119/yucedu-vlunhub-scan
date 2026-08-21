@@ -1,5 +1,5 @@
 # Runtime dependencies
-pywebview>=5.0,<6
+pywebview>=6.2.1,<7
 playwright>=1.40,<2
 
 # Optional macOS Dock icon support
