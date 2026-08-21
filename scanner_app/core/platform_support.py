@@ -13,23 +13,29 @@ import re
 import shutil
 import subprocess
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 
 APP_NAME = "靶场扫描助手"
-SOURCE_ROOT = Path(__file__).resolve().parent
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+SOURCE_ROOT = PACKAGE_ROOT.parent
 RESOURCE_ROOT = Path(getattr(sys, "_MEIPASS", SOURCE_ROOT))
 
 if getattr(sys, "frozen", False) and os.name == "nt":
     # 冻结版资源位于 PyInstaller 临时/内部目录，扫描结果必须写入用户可写目录。
     PROJECT_ROOT = Path(sys.executable).resolve().parent
     DATA_ROOT = Path(os.environ.get("LOCALAPPDATA", Path.home())) / APP_NAME
+    RESULTS_ROOT = DATA_ROOT / "scan_results"
 else:
     PROJECT_ROOT = SOURCE_ROOT
-    DATA_ROOT = SOURCE_ROOT
+    DATA_ROOT = SOURCE_ROOT / ".artifacts"
+    RESULTS_ROOT = DATA_ROOT / "results"
 
-GUI_DIR = RESOURCE_ROOT / "gui"
-RESULTS_ROOT = DATA_ROOT / "scan_results"
+if getattr(sys, "frozen", False):
+    GUI_DIR = RESOURCE_ROOT / "scanner_app" / "desktop" / "web"
+else:
+    GUI_DIR = PACKAGE_ROOT / "desktop" / "web"
 
 
 def default_results_dir(kind: str = "public") -> Path:
@@ -76,6 +82,41 @@ def hidden_subprocess_kwargs() -> dict:
     if os.name == "nt":
         return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
     return {}
+
+
+@contextmanager
+def hidden_asyncio_subprocesses():
+    """在 Windows 中隐藏 Playwright/asyncio 创建的子进程窗口。
+
+    ping 和 arp 可以直接传入 creationflags，但 Playwright 通过 asyncio
+    内部创建 Node 驱动与 Chromium，调用方没有公开的窗口参数入口。因此
+    只在截图工作线程的生命周期内拦截 asyncio 的两个创建函数，避免扫描
+    时闪出 cmd 窗口，同时不影响其它平台或主进程。
+    """
+    if os.name != "nt":
+        yield
+        return
+
+    import asyncio
+
+    original_exec = asyncio.create_subprocess_exec
+    original_shell = asyncio.create_subprocess_shell
+
+    async def create_hidden_exec(*args, **kwargs):
+        kwargs.setdefault("creationflags", getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        return await original_exec(*args, **kwargs)
+
+    async def create_hidden_shell(*args, **kwargs):
+        kwargs.setdefault("creationflags", getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        return await original_shell(*args, **kwargs)
+
+    asyncio.create_subprocess_exec = create_hidden_exec
+    asyncio.create_subprocess_shell = create_hidden_shell
+    try:
+        yield
+    finally:
+        asyncio.create_subprocess_exec = original_exec
+        asyncio.create_subprocess_shell = original_shell
 
 
 def show_error(title: str, message: str) -> None:

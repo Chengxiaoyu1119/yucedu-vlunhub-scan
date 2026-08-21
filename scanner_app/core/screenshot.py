@@ -18,9 +18,11 @@ import threading
 from pathlib import Path
 from urllib.parse import urljoin
 
+from scanner_app.core.platform_support import hidden_asyncio_subprocesses
+
 
 if getattr(sys, "frozen", False):
-    # build_windows.spec 将 Chromium 放到 Playwright 的内置浏览器目录。
+    # scripts/build_windows.spec 将 Chromium 放到 Playwright 的内置浏览器目录。
     # 让冻结版优先从 _MEIPASS 中查找，而不是访问用户全局缓存。
     os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
 
@@ -78,7 +80,11 @@ class ScreenshotPool:
         self._thread.start()
 
     def _worker(self):
-        asyncio.run(self._run_all())
+        # Playwright 会通过 asyncio 启动 Node 驱动和 Chromium。Windows
+        # 的窗口版 EXE 没有控制台，但未设置 creationflags 的子进程仍可能
+        # 短暂弹出 cmd，因此把隐藏策略限定在这个截图工作线程内。
+        with hidden_asyncio_subprocesses():
+            asyncio.run(self._run_all())
 
     async def _run_all(self):
         browser = None

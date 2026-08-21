@@ -36,7 +36,7 @@ const AVATAR_COLORS = [
   ["#ff6482", "#c21540"], ["#af7bff", "#6d3ce0"], ["#3ecad6", "#0f8a9c"],
 ];
 
-/* Apple 风格调色板 */
+/* 图表默认调色板；两个桌面端共用同一套视觉颜色。 */
 const PALETTE = {
   blue:   "#007aff", green:  "#34c759", orange: "#ff9500", red:    "#ff3b30",
   purple: "#af52de", teal:   "#5ac8fa", pink:   "#ff2d55", yellow: "#ffd60a",
@@ -92,7 +92,10 @@ function applyPlatformTheme() {
   const ua = navigator.userAgent || "";
   const isWindows = /Windows NT|Windows/i.test(ua);
   const isMac = !isWindows && /Macintosh|Mac OS X/i.test(ua);
-  document.body.classList.toggle("platform-windows", isWindows);
+  // Windows 使用与 macOS 相同的页面视觉；只保留平台字体与左侧品牌区差异。
+  // 移除旧的 platform-windows 类，避免历史 Windows 原生主题覆盖共享样式。
+  document.body.classList.remove("platform-windows");
+  document.body.classList.toggle("windows-shell", isWindows);
   document.body.classList.toggle("platform-macos", isMac);
   document.documentElement.dataset.platform = isWindows ? "windows" : (isMac ? "macos" : "other");
 }
@@ -448,6 +451,7 @@ function setScanning(on, mode) {
   document.querySelector(".switch").classList.toggle("disabled", on);
 
   if (on) {
+    $("consoleCard").classList.remove("collapsed");
     btn.textContent = mode === "internal" ? "停止扫描" : "停止扫描";
     btn.classList.add("stop", "scanning");
     otherBtn.disabled = true;
@@ -462,6 +466,12 @@ function setScanning(on, mode) {
     $("btnScan").textContent = "开始扫描";
     $("btnInternal").textContent = "开始内网扫描";
     setStatus("就绪", false);
+    /* 扫描结束后保留一行状态，避免日志区遮住刚生成的统计结果。 */
+    if (!$('consoleCard').classList.contains("collapsed")) {
+      setTimeout(() => {
+        if (!scanning) $("consoleCard").classList.add("collapsed");
+      }, 900);
+    }
   }
 }
 
@@ -1404,6 +1414,12 @@ async function init() {
     $("inpPortEnd").value = cfg.port_end;
     $("inpThreads").value = cfg.threads;
     $("inpTimeout").value = cfg.timeout;
+    if (cfg.screenshots_available === false) {
+      $("inpShots").checked = false;
+      $("inpShots").disabled = true;
+      $("inpShots").closest(".field-check").classList.add("unsupported");
+      log("warn", "当前 Windows 精简版未内置 Chromium，首页截图已关闭；需要时用 build_windows.ps1 -IncludeChromium 构建完整版");
+    }
     const icfg = await pywebview.api.get_internal_config();
     $("inpCidrs").value = icfg.cidrs;
     $("inpPorts").value = icfg.ports;
@@ -1416,6 +1432,7 @@ async function init() {
   updatePublicValidity();
   updateInternalValidity();
   log("info", "环境就绪 · 公网模式扫描 Web 靶场，内网模式请先连接向日葵 VPN");
+  $("consoleCard").classList.add("collapsed");
 }
 
 function bindUI() {

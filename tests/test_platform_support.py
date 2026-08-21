@@ -2,17 +2,19 @@
 # -*- coding: utf-8 -*-
 """平台适配层回归测试，不依赖桌面 GUI 或真实网络。"""
 
+import asyncio
 import os
 import subprocess
 import unittest
 
-from platform_support import (
+from scanner_app.core.platform_support import (
     PROJECT_ROOT,
     parse_arp_output,
     parse_ping_output,
     ping_command,
     resolve_output_dir,
     hidden_subprocess_kwargs,
+    hidden_asyncio_subprocesses,
 )
 
 
@@ -41,8 +43,8 @@ class PlatformSupportTests(unittest.TestCase):
         )
 
     def test_paths_are_project_based_by_default(self):
-        self.assertEqual(resolve_output_dir().parent, PROJECT_ROOT / "scan_results")
-        self.assertEqual(resolve_output_dir(kind="internal").parent, PROJECT_ROOT / "scan_results")
+        self.assertEqual(resolve_output_dir().parent, PROJECT_ROOT / ".artifacts" / "results")
+        self.assertEqual(resolve_output_dir(kind="internal").parent, PROJECT_ROOT / ".artifacts" / "results")
 
     def test_current_platform_ping_command(self):
         command = ping_command("127.0.0.1", 0.5)
@@ -58,6 +60,19 @@ class PlatformSupportTests(unittest.TestCase):
             self.assertEqual(options["creationflags"], subprocess.CREATE_NO_WINDOW)
         else:
             self.assertEqual(options, {})
+
+    def test_asyncio_subprocess_policy_is_restored(self):
+        original_exec = asyncio.create_subprocess_exec
+        original_shell = asyncio.create_subprocess_shell
+        with hidden_asyncio_subprocesses():
+            if os.name == "nt":
+                self.assertIsNot(asyncio.create_subprocess_exec, original_exec)
+                self.assertIsNot(asyncio.create_subprocess_shell, original_shell)
+            else:
+                self.assertIs(asyncio.create_subprocess_exec, original_exec)
+                self.assertIs(asyncio.create_subprocess_shell, original_shell)
+        self.assertIs(asyncio.create_subprocess_exec, original_exec)
+        self.assertIs(asyncio.create_subprocess_shell, original_shell)
 
 
 if __name__ == "__main__":

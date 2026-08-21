@@ -33,7 +33,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from platform_support import (
+from scanner_app.core.platform_support import (
     hidden_subprocess_kwargs,
     parse_ping_output,
     ping_command,
@@ -198,7 +198,7 @@ def scan_target(ip: str, ports: range, timeout: float, threads: int,
 def write_reports(results: list, outdir: Path, port_start: int, port_end: int,
                   threads: int, timeout: float, ports=None, duration=None) -> None:
     """兼容保留：转发到 reports.write_public_report"""
-    import reports
+    from scanner_app.core import reports
     reports.write_public_report(results, outdir, port_start, port_end, threads, timeout,
                                 ports, duration)
 
@@ -231,7 +231,7 @@ def run_scan(targets, port_start=8000, port_end=8099, timeout=2.0, threads=100,
     fav_map = {}
     pool = None
     if screenshots:
-        import screenshot as shot_mod
+        from scanner_app.core import screenshot as shot_mod
         if shot_mod.PLAYWRIGHT_OK:
             def on_shot_done(info):
                 if info["ok"]:

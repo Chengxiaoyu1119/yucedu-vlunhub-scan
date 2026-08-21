@@ -7,11 +7,11 @@ import json
 from pathlib import Path
 
 from playwright.async_api import async_playwright
-from platform_support import configure_console
+from scanner_app.core.platform_support import configure_console
 
-GUI = Path(__file__).resolve().parent / "gui"
-OUT = Path(__file__).resolve().parent / "test_shots"
-OUT.mkdir(exist_ok=True)
+GUI = Path(__file__).resolve().parents[1] / "scanner_app" / "desktop" / "web"
+OUT = Path(__file__).resolve().parents[1] / ".artifacts" / "test-shots"
+OUT.mkdir(parents=True, exist_ok=True)
 
 PUBLIC_EVENTS = [
     {"type": "scan_start", "targets": ["43.139.231.237", "43.139.149.11"],
@@ -214,6 +214,19 @@ async def main():
 
         # ---- 公网模式下内网看板应隐藏（反之亦然） ----
         checks["公网页看板不显示内网图"] = not await page.is_visible("#publicDash")
+
+        # ---- Windows 视觉边界：沿用共享主题、隐藏品牌区且最小窗口不横向溢出 ----
+        await page.evaluate("document.body.classList.add('windows-shell')")
+        windows_layout = await page.evaluate("""() => ({
+          brandHidden: getComputedStyle(document.querySelector('.brand')).display === 'none',
+          activeNavHasNoLeftAccent: getComputedStyle(document.querySelector('.nav-item.active')).boxShadow === 'none',
+          noHorizontalOverflow: document.body.scrollWidth <= window.innerWidth &&
+            document.querySelector('.pages').scrollWidth <= document.querySelector('.pages').clientWidth
+        })""")
+        checks["Windows 左侧不显示品牌区"] = windows_layout["brandHidden"]
+        checks["Windows 选中项无左侧蓝边"] = windows_layout["activeNavHasNoLeftAccent"]
+        checks["Windows 页面无横向溢出"] = windows_layout["noHorizontalOverflow"]
+        await page.screenshot(path=str(OUT / "windows_layout.png"), full_page=True)
 
         await browser.close()
 

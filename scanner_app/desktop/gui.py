@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """靶场扫描 GUI 入口（pywebview，支持 macOS / Windows）双模式版
 
-启动：python3 range_gui.py
+启动：python3 -m scanner_app.desktop.gui
 模式：公网 Web 靶场（端口递增扫描 + 首页截图）/ 内网穿透靶场（存活 + 无凭据 OS 判断）
 通信：JS 侧定时轮询 poll_events() 拉取事件，避免跨线程调用问题
 """
@@ -22,8 +22,8 @@ try:
 except ImportError:  # 允许 CLI/静态测试在未安装 GUI 依赖时继续导入模块
     webview = None
 
-import internal_scanner
-from platform_support import (
+from scanner_app.core import internal_scanner, screenshot
+from scanner_app.core.platform_support import (
     GUI_DIR,
     RESULTS_ROOT,
     configure_console,
@@ -33,7 +33,7 @@ from platform_support import (
     play_sound as platform_play_sound,
     show_error,
 )
-import scanner_core
+from scanner_app.core import scanner_core
 
 IMG_MIME = {".png": "image/png", ".jpg": "image/jpeg", ".ico": "image/x-icon",
             ".svg": "image/svg+xml", ".gif": "image/gif"}
@@ -56,6 +56,7 @@ class Api:
             "port_end": 8099,
             "threads": 100,
             "timeout": 2.0,
+            "screenshots_available": bool(screenshot.PLAYWRIGHT_OK),
         }
 
     def get_internal_config(self):
@@ -201,7 +202,7 @@ class Api:
     # ---------- 截图与报告 ----------
 
     def screenshot_data(self, results_dir, filename):
-        """返回 base64 data URL 供界面显示（截图/图标；仅限 scan_results 内的图片）"""
+        """返回 base64 data URL 供界面显示（仅限默认结果目录内的图片）。"""
         try:
             d = Path(results_dir).resolve()
             d.relative_to(RESULTS_ROOT.resolve())
@@ -249,19 +250,19 @@ class Api:
         return {"ok": False, "error": "仅支持 http/https 链接"}
 
     def open_path(self, path):
-        """在系统文件管理器中打开目录；只允许 scan_results 之内。"""
+        """在系统文件管理器中打开目录；只允许默认结果目录之内。"""
         if not self._safe_under_results(Path(path)):
-            return {"ok": False, "error": "路径不在 scan_results 目录内"}
+            return {"ok": False, "error": "路径不在默认结果目录内"}
         return {"ok": platform_open_path(Path(path))}
 
     def delete_history(self, path):
-        """删除一条历史记录（仅限 scan_results 直接子目录）"""
+        """删除一条历史记录（仅限默认结果目录的直接子目录）。"""
         try:
             p = Path(path).resolve()
             root = RESULTS_ROOT.resolve()
             p.relative_to(root)
             if p.parent != root:
-                return {"ok": False, "error": "只能删除 scan_results 下的记录目录"}
+                return {"ok": False, "error": "只能删除默认结果目录下的记录目录"}
             if not p.is_dir():
                 return {"ok": False, "error": "目录不存在或已被删除"}
         except (ValueError, OSError):
@@ -276,7 +277,7 @@ class Api:
     def get_report_data(self, path):
         """读取历史记录的 report.json，归一化为前端图表可直接消费的数据"""
         if not self._safe_under_results(Path(path)):
-            return {"ok": False, "error": "路径不在 scan_results 目录内"}
+            return {"ok": False, "error": "路径不在默认结果目录内"}
         f = Path(path) / "report.json"
         if not f.is_file():
             return {"ok": False, "error": "report.json 不存在"}

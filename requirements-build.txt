@@ -1,2 +1,4 @@
--r requirements.txt
+# Windows 精简版构建只需要桌面运行时和 PyInstaller；Playwright/Chromium
+# 仅在 build_windows.ps1 -IncludeChromium 构建完整版时按需安装。
+pywebview>=5.0,<6
 pyinstaller>=6.0,<7

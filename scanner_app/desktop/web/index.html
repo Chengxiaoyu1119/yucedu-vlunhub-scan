@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>靶场扫描助手</title>
+  <link rel="icon" type="image/svg+xml" href="app_icon.svg">
+  <link rel="alternate icon" type="image/png" href="app_icon.png">
   <link rel="stylesheet" href="style.css">
   <script src="chart.umd.min.js"></script>
 </head>
@@ -12,6 +14,15 @@
 
   <!-- ============ 侧边栏 ============ -->
   <aside class="sidebar">
+    <div class="brand" aria-label="靶场扫描助手">
+      <span class="brand-mark" aria-hidden="true">
+        <img src="app_icon.png" alt="">
+      </span>
+      <span class="brand-copy">
+        <strong>靶场扫描助手</strong>
+        <small>Range Scanner</small>
+      </span>
+    </div>
     <div class="nav-group-label first">扫描模式</div>
     <nav class="nav">
       <button class="nav-item active" data-page="scan">
@@ -358,8 +369,8 @@
           </ul>
           <p>每次扫描自动生成分类报告：report.html（内嵌截图）/ report.md / report.csv / report.json。</p>
           <ul>
-            <li>命令行：<code>python3 range_scanner.py</code></li>
-            <li>图形界面：macOS 双击 <code>启动靶场扫描.command</code>，Windows 双击 <code>启动靶场扫描.bat</code></li>
+            <li>命令行：<code>python3 -m scanner_app.cli.public</code></li>
+            <li>图形界面：macOS 双击 <code>launchers/启动靶场扫描.command</code>，Windows 双击 <code>launchers/启动靶场扫描.vbs</code></li>
           </ul>
           <p class="footnote">仅用于授权靶场环境的安全教学与测试；内网模式不做爆破、不登录、不利用漏洞。</p>
         </div>

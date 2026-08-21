@@ -16,6 +16,8 @@ import io
 import json
 from pathlib import Path
 
+from scanner_app.core.platform_support import GUI_DIR
+
 REPORT_CSS = """
 :root { --bg:#f5f5f7; --card:#fff; --card2:#fafafc; --text:#1d1d1f; --text2:#6e6e73;
   --blue:#007aff; --blue-bg:rgba(0,122,255,.1); --green:#248a3d; --green-bg:rgba(52,199,89,.14);
@@ -108,7 +110,7 @@ def _table(headers, rows):
 
 # ================= 报告内嵌图表（Chart.js 离线自包含） =================
 
-CHART_JS_PATH = Path(__file__).resolve().parent / "gui" / "chart.umd.min.js"
+CHART_JS_PATH = GUI_DIR / "chart.umd.min.js"
 
 # 与 GUI 看板一致的 Apple 调色板
 _C = {"blue": "#007aff", "green": "#34c759", "orange": "#ff9500", "red": "#ff3b30",

@@ -31,33 +31,50 @@ jobs:
         run: python -m playwright install chromium
 
       - name: Check Python syntax
-        run: python -B -m compileall -q .
+        run: python -B -m compileall -q scanner_app tests
 
       - name: Run platform tests
-        run: python -B -m unittest -v test_platform_support.py
+        run: python -B -m unittest -v tests.test_platform_support
+
+      - name: Check project structure
+        run: python -B -m unittest -v tests.test_project_structure
 
       - name: Run GUI chart tests
-        run: python -B test_charts.py
+        run: python -B -m tests.test_charts
 
       - name: Run report chart tests
-        run: python -B test_report_charts.py
+        run: python -B -m tests.test_report_charts
+
+      - name: Build lean Windows executable
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
+          $exe = Get-Item .artifacts\dist\靶场扫描助手.exe
+          if ($exe.Length -gt 80MB) {
+            throw "精简版 EXE 超过 80 MB：$([math]::Round($exe.Length / 1MB, 1)) MB"
+          }
+          Add-Type -AssemblyName System.Drawing
+          $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe.FullName)
+          if (-not $icon) { throw "EXE 未嵌入有效应用图标" }
+          $icon.Dispose()
 
       - name: Check macOS launcher
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          bash -n "启动靶场扫描.command"
-          test -x "启动靶场扫描.command"
+          bash -n "launchers/启动靶场扫描.command"
+          test -x "launchers/启动靶场扫描.command"
 
       - name: Smoke test macOS launcher
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          ./启动靶场扫描.command
+          ./launchers/启动靶场扫描.command
           sleep 5
-          gui_pid="$(ps -axo pid=,command= | awk '/[r]ange_gui.py/ {print $1; exit}')"
+          gui_pid="$(ps -axo pid=,command= | awk '/scanner_app\.desktop\.gui/ {print $1; exit}')"
           if [ -z "$gui_pid" ]; then
-            echo "range_gui.py did not remain running after launcher start"
+            echo "scanner_app.desktop.gui did not remain running after launcher start"
             exit 1
           fi
           kill "$gui_pid" || true

@@ -103,6 +103,50 @@ body {
   padding: 14px 11px 12px;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 2px 10px 14px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid var(--separator);
+}
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+}
+.brand-mark img {
+  display: block;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+.brand-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.brand-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.brand-copy small {
+  color: var(--text-2);
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+}
+
 .nav-group-label {
   padding: 10px 10px 5px;
   font-size: 10.5px;
@@ -1007,321 +1051,11 @@ body {
 .console::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border: 2px solid var(--console-bg); }
 .modal-charts::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.16); border: 2px solid var(--surface-solid); }
 
-/* ============ Windows 原生主题 ============
-   Windows 使用 Segoe UI / Fluent 风格；macOS 保留上方的 Apple 主题。 */
-body.platform-windows {
-  --bg: #f3f3f3;
-  --sidebar: #f7f7f7;
-  --sidebar-top: #f7f7f7;
-  --sidebar-bottom: #f7f7f7;
-  --card: #ffffff;
-  --card-solid: #ffffff;
-  --surface-solid: #ffffff;
-  --text: #1f1f1f;
-  --text-2: #5f5f5f;
-  --blue: #0f6cbd;
-  --blue-hover: #115ea3;
-  --blue-bg: #e5f1fb;
-  --green: #107c10;
-  --green-bg: #dff6dd;
-  --orange: #d83b01;
-  --orange-bg: #fff4ce;
-  --red: #c42b1c;
-  --red-bg: #fde7e9;
-  --separator: #e5e5e5;
-  --field-border: #d1d1d1;
-  --input-bg: #ffffff;
-  --input-focus-bg: #ffffff;
-  --input-disabled-bg: #f0f0f0;
-  --hover-bg: #f5f5f5;
-  --head-bg: #fafafa;
-  --code-bg: #f5f5f5;
-  --console-bg: #1f1f1f;
-  --radius: 8px;
-  --radius-sm: 6px;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  --shadow-lift: 0 4px 12px rgba(0, 0, 0, 0.12);
-  font-family: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
-  font-size: 14px;
-  -webkit-font-smoothing: auto;
+/* ============ 双平台视觉差异 ============
+   Windows 与 macOS 共用同一套页面视觉；Windows 仅使用系统字体并隐藏左侧品牌区。 */
+body.windows-shell {
+  font-family: "Segoe UI", "Segoe UI Variable", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
-
-body.platform-windows .app { height: 100dvh; }
-body.platform-windows .sidebar {
-  width: 228px;
-  padding: 12px 8px 10px;
-  background: var(--sidebar);
-  border-right: 1px solid #dedede;
-  background-image: none;
-}
-body.platform-windows .nav-group-label {
-  padding: 12px 12px 6px;
-  color: #616161;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: normal;
-  text-transform: none;
-}
-body.platform-windows .nav-item {
-  min-height: 40px;
-  padding: 0 12px;
-  border-radius: 4px;
-  gap: 10px;
-  color: #303030;
-  font-size: 14px;
-  font-weight: 400;
-  transition: background 120ms ease, color 120ms ease;
-}
-body.platform-windows .nav-item:hover { background: #ededed; }
-body.platform-windows .nav-item.active {
-  background: var(--blue-bg);
-  color: var(--blue);
-  font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--blue);
-}
-body.platform-windows .nav-item:active { transform: none; }
-body.platform-windows .sidebar-footer {
-  padding: 12px 12px 4px;
-  border-top-color: #dedede;
-  font-size: 13px;
-}
-
-body.platform-windows .pages { padding: 24px 28px 18px; }
-body.platform-windows .page-header h1 {
-  font-size: 25px;
-  font-weight: 600;
-  letter-spacing: normal;
-}
-body.platform-windows .page-header .subtitle { font-size: 13px; }
-body.platform-windows .notice {
-  padding: 11px 14px;
-  border-radius: 6px;
-  border-left: 3px solid var(--blue);
-  color: #134b78;
-  background: #e8f3fc;
-  font-size: 13px;
-}
-body.platform-windows .card,
-body.platform-windows .stat-chip,
-body.platform-windows .scan-summary,
-body.platform-windows .dash-titlebar,
-body.platform-windows .chart-card,
-body.platform-windows .site-card {
-  background: var(--card);
-  border-color: #e1e1e1;
-  box-shadow: var(--shadow);
-  backdrop-filter: none;
-}
-body.platform-windows .config-card { margin-top: 16px; padding: 20px 20px 18px; }
-body.platform-windows .config-grid { gap: 16px; }
-body.platform-windows .field { gap: 7px; }
-body.platform-windows .field > span { font-size: 12px; color: #505050; }
-body.platform-windows .field input[type="text"],
-body.platform-windows .field input[type="number"] {
-  height: 36px;
-  border-radius: 4px;
-  background: var(--input-bg);
-  color: var(--text);
-  font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
-  font-size: 14px;
-}
-body.platform-windows .field input::placeholder,
-body.platform-windows .tool-search::placeholder { color: #8a8a8a; }
-body.platform-windows .field input:focus,
-body.platform-windows .tool-search:focus,
-body.platform-windows .tool-select:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 2px rgba(15, 108, 189, 0.24);
-}
-body.platform-windows button:focus-visible,
-body.platform-windows input:focus-visible,
-body.platform-windows select:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 1px;
-}
-body.platform-windows .switch { width: 44px; height: 24px; }
-body.platform-windows .switch i { background: #8a8886; }
-body.platform-windows .switch input:checked + i { background: var(--blue); }
-body.platform-windows .config-actions { margin-top: 18px; gap: 10px; }
-body.platform-windows .preset-label { font-size: 13px; }
-body.platform-windows .preset-group { gap: 8px; }
-body.platform-windows .preset-btn {
-  height: 32px;
-  border-radius: 4px;
-  padding: 0 12px;
-  background: var(--surface-solid);
-  color: #333;
-  font-size: 13px;
-}
-body.platform-windows .preset-btn:hover {
-  background: var(--blue-bg);
-  border-color: var(--blue);
-  color: var(--blue);
-}
-body.platform-windows .preset-btn:disabled { opacity: 0.55; cursor: default; }
-body.platform-windows .btn-primary {
-  height: 36px;
-  padding: 0 18px;
-  border-radius: 4px;
-  background: var(--blue);
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: none;
-  transition: background 120ms ease, border-color 120ms ease;
-}
-body.platform-windows .btn-primary:hover { background: var(--blue-hover); box-shadow: none; }
-body.platform-windows .btn-primary:active { transform: none; }
-body.platform-windows .btn-primary.scanning { animation: none; }
-
-body.platform-windows .progress-area { margin-top: 18px; }
-body.platform-windows .progress-track { height: 4px; border-radius: 2px; background: #dedede; }
-body.platform-windows .progress-fill {
-  border-radius: 2px;
-  background: var(--blue);
-  box-shadow: none;
-  transition: width 180ms ease-out;
-}
-body.platform-windows .progress-fill::after { display: none; }
-body.platform-windows .progress-text,
-body.platform-windows .progress-pct { font-size: 13px; }
-body.platform-windows .stats-bar { gap: 10px; }
-body.platform-windows .stat-chip {
-  min-width: 120px;
-  border-radius: 6px;
-  padding: 12px 14px;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
-}
-body.platform-windows .stat-chip:hover { box-shadow: var(--shadow); }
-body.platform-windows .stat-chip b { letter-spacing: normal; }
-body.platform-windows .scan-summary { border-radius: 6px; }
-
-body.platform-windows .results-head { margin-top: 22px; }
-body.platform-windows .results-head h2 { font-size: 18px; font-weight: 600; }
-body.platform-windows .tool-search,
-body.platform-windows .tool-select {
-  height: 32px;
-  border-radius: 4px;
-  font-size: 13px;
-}
-body.platform-windows .results-grid { gap: 12px; }
-body.platform-windows .site-card { border-radius: 8px; animation: none; }
-body.platform-windows .site-card:hover { box-shadow: var(--shadow-lift); }
-body.platform-windows .site-thumb {
-  background: #303030;
-  background-image: none;
-}
-body.platform-windows .site-thumb::before { display: none; }
-body.platform-windows .site-avatar {
-  background-image: none !important;
-  background-color: var(--blue) !important;
-  border-radius: 4px;
-  box-shadow: none;
-}
-body.platform-windows .dashboard { animation: none; }
-body.platform-windows .dash-titlebar,
-body.platform-windows .chart-card { border-radius: 8px; }
-body.platform-windows .chart-card { transition: border-color 120ms ease, box-shadow 120ms ease; }
-body.platform-windows .chart-card:hover { box-shadow: var(--shadow); }
-
-body.platform-windows .console-card {
-  margin: 0 28px 14px;
-  border-radius: 8px;
-  border-color: #dedede;
-  box-shadow: var(--shadow);
-}
-body.platform-windows .console-titlebar {
-  height: 36px;
-  padding: 0 12px;
-  background: var(--surface-solid);
-  border-bottom-color: #e5e5e5;
-  transition: background 120ms ease;
-}
-body.platform-windows .console-titlebar:hover { background: #f5f5f5; }
-body.platform-windows .console-titlebar .dot { display: none; }
-body.platform-windows .console-title {
-  text-align: left;
-  color: var(--text-2);
-  font-size: 13px;
-  font-weight: 600;
-}
-body.platform-windows .console-titlebar .btn-ghost,
-body.platform-windows .chev { color: var(--text-2); }
-body.platform-windows .console-titlebar .btn-ghost { margin-right: 8px; }
-body.platform-windows .console {
-  height: 156px;
-  padding: 10px 14px;
-  font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
-  font-size: 12px;
-}
-body.platform-windows .history-item { padding: 14px 18px; }
-body.platform-windows .history-folder { border-radius: 6px; }
-body.platform-windows .about-card { line-height: 1.75; }
-
-body.platform-windows .lightbox-mask,
-body.platform-windows .modal-mask { backdrop-filter: none; }
-body.platform-windows .lightbox-body,
-body.platform-windows .modal-body { border-radius: 8px; animation: none; }
-body.platform-windows .modal-head {
-  background: var(--surface-solid);
-  padding: 13px 18px;
-}
-body.platform-windows .modal-head-left { font-size: 16px; font-weight: 600; }
-body.platform-windows .chart-export { border-radius: 4px; }
-body.platform-windows .page.active,
-body.platform-windows .host-table tbody tr { animation: none; }
-body.platform-windows .pages::-webkit-scrollbar-thumb,
-body.platform-windows .modal-charts::-webkit-scrollbar-thumb { background: #c8c8c8; }
-
-@media (prefers-color-scheme: dark) {
-  body.platform-windows {
-    --bg: #202020;
-    --sidebar: #202020;
-    --sidebar-top: #202020;
-    --sidebar-bottom: #202020;
-    --card: #2b2b2b;
-    --card-solid: #2b2b2b;
-    --surface-solid: #2b2b2b;
-    --text: #f5f5f5;
-    --text-2: #c8c8c8;
-    --blue: #4cc2ff;
-    --blue-hover: #75d2ff;
-    --blue-bg: #123b53;
-    --green: #6ccb5f;
-    --green-bg: #163d1a;
-    --orange: #ffb900;
-    --orange-bg: #493600;
-    --red: #ff99a4;
-    --red-bg: #4a2027;
-    --separator: #404040;
-    --field-border: #5c5c5c;
-    --input-bg: #242424;
-    --input-focus-bg: #242424;
-    --input-disabled-bg: #303030;
-    --hover-bg: #353535;
-    --head-bg: #303030;
-    --code-bg: #363636;
-    --console-bg: #111111;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
-    --shadow-lift: 0 4px 14px rgba(0, 0, 0, 0.55);
-  }
-  body.platform-windows .sidebar { border-right-color: #3d3d3d; }
-  body.platform-windows .nav-group-label,
-  body.platform-windows .field > span { color: #c8c8c8; }
-  body.platform-windows .nav-item { color: #f5f5f5; }
-  body.platform-windows .nav-item:hover { background: #2d2d2d; }
-  body.platform-windows .nav-item.active { color: var(--blue); }
-  body.platform-windows .sidebar-footer { border-top-color: #3d3d3d; }
-  body.platform-windows .notice { color: #c5e8ff; background: #123b53; }
-  body.platform-windows .preset-btn { color: var(--text); }
-  body.platform-windows .console-titlebar { border-bottom-color: #404040; }
-  body.platform-windows .console-titlebar:hover { background: #333333; }
-  body.platform-windows .site-thumb { background: #181818; }
-  body.platform-windows .pages::-webkit-scrollbar-thumb,
-  body.platform-windows .modal-charts::-webkit-scrollbar-thumb { background: #5a5a5a; }
-}
-
-@media (max-width: 900px) {
-  body.platform-windows .sidebar { width: 196px; }
-  body.platform-windows .pages { padding: 20px 18px 16px; }
-  body.platform-windows .console-card { margin-left: 18px; margin-right: 18px; }
-}
+body.windows-shell .brand { display: none !important; }
+body.windows-shell .nav-item.active { box-shadow: none; }

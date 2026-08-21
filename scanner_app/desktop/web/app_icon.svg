@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">VLUN</title>
+  <desc id="desc">VLUN network scanning mark</desc>
+  <rect width="1024" height="1024" rx="224" fill="#10243b"/>
+  <rect x="44" y="44" width="936" height="936" rx="190" fill="#173b5b"/>
+  <path d="M214 218h116l182 432 182-432h116L570 794H454z" fill="#36d6c7"/>
+  <path d="M346 218h86l80 190 80-190h86L512 604z" fill="#f7fbff"/>
+  <path d="M222 710h580" fill="none" stroke="#f7fbff" stroke-width="18" stroke-linecap="round" opacity=".92"/>
+  <circle cx="222" cy="710" r="15" fill="#36d6c7"/>
+  <circle cx="802" cy="710" r="15" fill="#36d6c7"/>
+  <text x="512" y="892" fill="#f7fbff" font-family="Segoe UI, Arial, sans-serif" font-size="96" font-weight="700" letter-spacing="18" text-anchor="middle">VLUN</text>
+</svg>

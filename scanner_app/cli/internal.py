@@ -3,16 +3,16 @@
 """内网穿透靶场 CLI 入口（核心逻辑在 internal_scanner.py，与 GUI 共用）
 
 用法：
-  python3 range_internal.py                          # 默认扫 192.168.3.0/24 与 192.168.4.0/24
-  python3 range_internal.py --cidrs 192.168.3.0/24   # 自定义网段
-  python3 range_internal.py --ports 22,445,3389      # 自定义探测端口
+  python3 -m scanner_app.cli.internal                         # 默认扫 192.168.3.0/24 与 192.168.4.0/24
+  python3 -m scanner_app.cli.internal --cidrs 192.168.3.0/24  # 自定义网段
+  python3 -m scanner_app.cli.internal --ports 22,445,3389     # 自定义探测端口
 """
 
 import argparse
 import re
 
-import internal_scanner
-from platform_support import configure_console
+from scanner_app.core import internal_scanner
+from scanner_app.core.platform_support import configure_console
 
 
 def parse_args():
@@ -23,7 +23,7 @@ def parse_args():
                    help="探测端口，逗号分隔（默认：22,80,443,135,139,445,3389,8080）")
     p.add_argument("--timeout", type=float, default=1.0, help="单次探测超时秒数（默认 1）")
     p.add_argument("--threads", type=int, default=200, help="并发线程数（默认 200）")
-    p.add_argument("--output", default="", help="结果输出目录（默认 scan_results/internal_<时间戳>）")
+    p.add_argument("--output", default="", help="结果输出目录（默认 .artifacts/results/internal_<时间戳>）")
     args = p.parse_args()
     try:
         args.port_list = sorted({int(x) for x in re.split(r"[,，\s]+", args.ports) if x.strip()})

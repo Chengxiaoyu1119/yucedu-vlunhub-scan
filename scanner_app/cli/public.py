@@ -3,15 +3,15 @@
 """靶场扫描 CLI 入口（核心逻辑在 scanner_core.py，GUI 与 CLI 共用）
 
 用法：
-  python3 range_scanner.py                      # 默认扫描两个靶场 IP 的 8000-8099
-  python3 range_scanner.py --port-end 8199      # 自定义端口上限
-  python3 range_scanner.py --targets 1.2.3.4    # 自定义目标 IP
+  python3 -m scanner_app.cli.public                   # 默认扫描两个靶场 IP 的 8000-8099
+  python3 -m scanner_app.cli.public --port-end 8199   # 自定义端口上限
+  python3 -m scanner_app.cli.public --targets 1.2.3.4 # 自定义目标 IP
 """
 
 import argparse
 
-from platform_support import configure_console, resolve_output_dir
-import scanner_core
+from scanner_app.core import scanner_core
+from scanner_app.core.platform_support import configure_console, resolve_output_dir
 
 
 def parse_args():
@@ -22,7 +22,7 @@ def parse_args():
     p.add_argument("--port-end", type=int, default=8099, help="结束端口（默认 8099）")
     p.add_argument("--timeout", type=float, default=2.0, help="连接/请求超时秒数（默认 2）")
     p.add_argument("--threads", type=int, default=100, help="并发线程数（默认 100）")
-    p.add_argument("--output", default="", help="结果输出目录（默认 scan_results/<时间戳>）")
+    p.add_argument("--output", default="", help="结果输出目录（默认 .artifacts/results/<时间戳>）")
     p.add_argument("--no-screenshot", action="store_true", help="跳过网站首页截图")
     args = p.parse_args()
     if args.port_end < args.port_start:

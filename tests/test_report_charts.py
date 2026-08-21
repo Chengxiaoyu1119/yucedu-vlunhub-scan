@@ -7,11 +7,11 @@ import json
 from pathlib import Path
 
 from playwright.async_api import async_playwright
-from platform_support import configure_console
-from reports import write_public_report, write_internal_report
+from scanner_app.core.platform_support import configure_console
+from scanner_app.core.reports import write_public_report, write_internal_report
 
-OUT = Path(__file__).resolve().parent / "test_shots"
-OUT.mkdir(exist_ok=True)
+OUT = Path(__file__).resolve().parents[1] / ".artifacts" / "test-shots"
+OUT.mkdir(parents=True, exist_ok=True)
 
 PUBLIC_RESULTS = [
     {"ip": "43.139.231.237",

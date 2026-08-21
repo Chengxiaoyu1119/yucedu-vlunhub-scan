@@ -26,9 +26,9 @@ import threading
 import time
 from pathlib import Path
 
-import reports
-import scanner_core  # 复用 fetch_http
-from platform_support import (
+from scanner_app.core import reports
+from scanner_app.core import scanner_core  # 复用 fetch_http
+from scanner_app.core.platform_support import (
     hidden_subprocess_kwargs,
     parse_arp_output,
     parse_ping_output,
