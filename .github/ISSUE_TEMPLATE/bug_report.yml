@@ -1,0 +1,59 @@
+name: Bug report
+description: 报告可复现的功能或打包问题
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请先确认问题能在最新 Release 或 `main` 复现，并隐藏目标地址、凭据和个人数据。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 填写 Release 版本、提交号或本地构建时间。
+      placeholder: v2.1.1 / 4d79abe
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台
+      options:
+        - Windows x64
+        - macOS Apple Silicon
+        - macOS Intel
+        - Python 开发环境
+        - CLI
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请按顺序写出最小复现步骤。
+      placeholder: |
+        1. 下载或执行……
+        2. 输入……
+        3. 点击……
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      description: 请脱敏后粘贴；敏感安全问题请走 SECURITY.md。
+      render: text

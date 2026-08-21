@@ -1,173 +1,327 @@
-# 靶场扫描助手
+<div align="center">
+  <img src="scanner_app/desktop/web/app_icon.svg" alt="VLUN" width="112" />
+  <h1>靶场扫描助手</h1>
+  <p>跨平台靶场信息收集桌面工具 · Windows · macOS · CLI · 本地报告</p>
+  <p>
+    <a href="https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/actions/workflows/ci.yml"><img src="https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
+    <a href="https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases/latest"><img src="https://img.shields.io/github/v/release/Chengxiaoyu1119/yucedu-vlunhub-scan?display_name=tag&sort=semver&color=36D6C7" alt="Latest release" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/github/license/Chengxiaoyu1119/yucedu-vlunhub-scan?color=173B5B" alt="License" /></a>
+    <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+" /></a>
+    <a href="https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases"><img src="https://img.shields.io/badge/Windows%20%7C%20macOS-supported-36D6C7" alt="Windows and macOS" /></a>
+  </p>
+</div>
 
-一个面向靶场环境的双模式信息收集工具，提供 macOS 和 Windows 桌面启动方式，也支持命令行运行。扫描结果只保存到本地，不上传目标数据。
+> 面向本地靶场、安全教学和测试环境的跨平台信息收集工具。它把公网 Web 发现、内网存活探测、桌面可视化和本地报告整理到一套清晰的工作流里。
 
-仓库地址：[Chengxiaoyu1119/yucedu-vlunhub-scan](https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan)
-
-最新发行版（Windows / macOS）：[Releases](https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases/latest)
+**仓库** · [GitHub](https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan)　
+**发行版** · [Releases](https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases/latest)　
+**贡献** · [CONTRIBUTING.md](CONTRIBUTING.md)　
+**安全报告** · [SECURITY.md](SECURITY.md)　
+**更新日志** · [CHANGELOG.md](CHANGELOG.md)
 
 ![靶场扫描助手首页预览](docs/assets/app-preview.png)
 
-首页预览展示公网 Web 靶场模式，默认端口范围为 `8000–8020`。
+<p align="center"><sub>公网 Web 靶场首页预览 · 默认端口范围 8000–8020 · Windows 与 macOS 共用页面视觉</sub></p>
 
-## 功能
+<details>
+<summary><strong>目录导航</strong></summary>
 
-- 公网 Web 靶场：Ping、TCP 端口扫描、HTTP/HTTPS 标题与 Server 识别、HTML 快照、首页截图和 favicon。
-- 内网穿透靶场：ICMP + TCP 存活发现、TTL/端口指纹/SSH Banner/HTTP 标题辅助系统判断、ARP MAC 地址读取。
-- 桌面界面：进度、日志、站点卡片、搜索排序、截图灯箱、离线图表和历史记录。
-- 每次扫描生成 `report.html`、`report.md`、`report.csv`、`report.json`。
-- 内网模式只做无凭据发现，不做登录、爆破或漏洞利用。
+- [项目亮点](#项目亮点)
+- [功能地图](#功能地图)
+- [安全边界](#安全边界)
+- [快速开始](#快速开始)
+- [配置与默认值](#配置与默认值)
+- [输出结果](#输出结果)
+- [架构概览](#架构概览)
+- [项目结构](#项目结构)
+- [构建与发布](#构建与发布)
+- [验证与质量门禁](#验证与质量门禁)
+- [常见问题](#常见问题)
+- [参与贡献](#参与贡献)
+- [许可证](#许可证)
 
-## 环境
+</details>
+
+## 项目亮点
+
+| 方向 | 能力 | 结果 |
+| --- | --- | --- |
+| 公网 Web 靶场 | Ping、TCP 端口发现、HTTP/HTTPS 识别、标题与 Server、HTML 快照、favicon、首页截图 | 快速了解多个 Web 入口的可见信息 |
+| 内网穿透靶场 | ICMP/TCP 存活发现、TTL、端口指纹、SSH Banner、HTTP 标题、ARP MAC | 形成主机、系统线索和开放端口概览 |
+| 桌面体验 | 进度、日志、站点卡片、搜索排序、截图灯箱、离线图表、历史看板 | 扫描过程可观察，结果可回看 |
+| 命令行 | 公网与内网两个 CLI 入口，参数可脚本化 | 适合重复任务和自动化流程 |
+| 本地报告 | HTML、Markdown、CSV、JSON 四种输出 | 便于浏览、归档、二次处理和分享 |
+| 双平台发行 | Windows x64 精简版 EXE、macOS arm64/x64 应用包 | 下载后按平台直接启动 |
+
+## 功能地图
+
+```text
+输入目标
+   │
+   ├─ 公网 Web 模式 ── Ping / TCP / HTTP / HTML / favicon / 可选截图
+   │                         │
+   └─ 内网模式 ─────── ICMP / TCP / TTL / Banner / ARP
+                             │
+                             ▼
+                    统一事件流与结构化结果
+                             │
+             ┌───────────────┼────────────────┐
+             ▼               ▼                ▼
+         桌面看板          CLI 输出          本地报告
+       pywebview + Web    stdout / 参数    HTML / MD / CSV / JSON
+```
+
+## 安全边界
+
+本项目定位是信息收集和结果整理工具，默认保持低侵入、可观察、可回滚：
+
+- 只面向本地靶场、安全教学和测试环境。
+- 内网模式只做无凭据发现，不包含登录、凭据爆破或漏洞利用流程。
+- 不包含持久化、提权、数据外传、规避检测或反分析功能。
+- 运行结果默认落盘到本地，不自动上传目标数据。
+- 发现安全问题请遵循 [SECURITY.md](SECURITY.md)，不要把敏感复现细节贴到公开 Issue。
+
+## 快速开始
+
+### 直接下载发行版
+
+打开 [最新 Releases](https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases/latest)，按系统选择：
+
+| 平台 | 文件 | 启动方式 | 说明 |
+| --- | --- | --- | --- |
+| Windows x64 | `*-windows-x64.zip` | 解压后双击 `启动靶场扫描.vbs` | 内置 Python 和 pywebview；精简版不含 Chromium |
+| macOS Apple Silicon | `*-macos-arm64.zip` | 解压后双击 `靶场扫描助手.app` | Apple Silicon；使用系统 WebKit |
+| macOS Intel | `*-macos-x64.zip` | 解压后双击 `靶场扫描助手.app` | Intel；使用系统 WebKit |
+
+macOS 应用包当前没有 Apple notarization。首次打开时，如果系统弹出来源提示，可在 Finder 中右键应用并选择“打开”。
+
+### 源码运行
+
+环境要求：
 
 - Python 3.10 或更高版本。
-- GUI 依赖：`pywebview`。
-- 首页截图和图表测试依赖：`playwright` 及 Chromium 浏览器。
-- Windows 的 pywebview 会优先使用 EdgeChromium，未安装 Edge Runtime 时回退到系统可用的 MSHTML 渲染器。
-- Windows 使用系统自带的 `ping`、`arp`、文件管理器和提示音；扫描期间的系统子进程（包括 Playwright/Chromium）统一隐藏控制台窗口，macOS 原有的通知、Finder、Dock 图标和提示音行为保留。
-- Windows 发布版默认使用 PyInstaller 生成精简单文件 EXE，不把 Chromium 浏览器压进包内；需要首页截图时可以额外构建完整版。
-- macOS 发行版提供 Apple Silicon（arm64）和 Intel（x64）应用包，默认使用系统 WebKit，不内置 Chromium。
-- Windows 与 macOS 共用同一套页面视觉和交互细节；Windows 使用 Segoe UI 字体，macOS 使用 Apple 字体栈，业务扫描核心和报告格式在两端共用。
-
-## 安装
-
-Windows 发布版不需要目标电脑安装 Python、pip 或 pywebview。构建者在 Windows 上执行 `scripts\build_windows.ps1`，生成 `.artifacts\dist\靶场扫描助手.exe` 后，双击 `launchers\启动靶场扫描.vbs` 即可无控制台启动；发行包可把 VBS 与 EXE 放在同一目录。默认精简版不内置 Chromium，首页截图会自动关闭；使用 `-IncludeChromium` 才会生成带截图能力的完整版。
-
-macOS 发行版可在 [Releases](https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases/latest) 下载 `macos-arm64` 或 `macos-x64` ZIP，解压后双击其中的 `靶场扫描助手.app`。应用包为精简版，不内置 Chromium；需要首页截图时使用源码环境安装 Playwright 和 Chromium。
-
-手动安装仅适合开发或命令行使用；下面的 `python` 是 Python 解释器。
+- 桌面界面依赖 `pywebview`。
+- 首页截图依赖 Playwright 和 Chromium；只做端口发现时可以跳过 Chromium。
 
 ```bash
+python -m venv .venv
 python -m pip install -r requirements.txt
 python -m playwright install chromium
 ```
 
-如果只需要端口扫描、不需要截图，可以不安装 Chromium；程序会自动跳过截图。
+启动桌面界面：
 
-## 启动
-
-Windows：只需双击 `launchers\启动靶场扫描.vbs`。它直接启动已打包的 `靶场扫描助手.exe`，不弹出 cmd 窗口，不创建 `.venv`，扫描时也不会额外打开控制台窗口，也不要求目标电脑配置 Python 环境。若找不到 EXE，启动器会提示先运行 `scripts\build_windows.ps1`。开发调试时也可以执行：
-
-```powershell
+```bash
 python -m scanner_app.desktop.gui
 ```
 
-macOS：双击 `launchers/启动靶场扫描.command`，或执行：
+Windows 双击入口：
 
-```bash
-python3 -m scanner_app.desktop.gui
+```text
+launchers/启动靶场扫描.vbs
 ```
 
-命令行公网扫描：
+macOS 双击入口：
 
 ```bash
-python -m scanner_app.cli.public --targets TARGET --port-start 8000 --port-end 8020
+chmod +x launchers/启动靶场扫描.command
+./launchers/启动靶场扫描.command
 ```
 
-命令行内网扫描：
+### CLI 示例
+
+公网 Web 靶场默认扫描两个示例目标的 `8000–8020` 端口：
 
 ```bash
-python -m scanner_app.cli.internal --cidrs 192.168.3.0/24,192.168.4.0/24
+python -m scanner_app.cli.public
 ```
 
-启动入口会先切换到项目目录。开发运行的默认结果统一写入 `.artifacts/results/`，显式传入 `--output` 时使用指定目录；Windows EXE 默认写入 `%LOCALAPPDATA%\靶场扫描助手\scan_results\`。
+指定目标和范围：
+
+```bash
+python -m scanner_app.cli.public \
+  --targets TARGET \
+  --port-start 8000 \
+  --port-end 8020 \
+  --threads 100 \
+  --timeout 2
+```
+
+内网模式：
+
+```bash
+python -m scanner_app.cli.internal \
+  --cidrs 192.168.3.0/24,192.168.4.0/24 \
+  --ports 22,80,443,135,139,445,3389,8080
+```
+
+## 配置与默认值
+
+### 公网 Web 模式
+
+| 配置 | 默认值 | 说明 |
+| --- | --- | --- |
+| 目标 | `43.139.231.237,43.139.149.11` | GUI 和 CLI 的示例目标，可通过参数覆盖 |
+| 起始端口 | `8000` | 默认范围起点 |
+| 结束端口 | `8020` | 默认范围终点，包含该端口 |
+| 并发线程 | `100` | TCP 探测并发量 |
+| 超时 | `2` 秒 | 连接和请求的单次超时 |
+| 首页截图 | 可选 | 精简发行包默认关闭；源码环境可启用 |
+
+### 内网模式
+
+| 配置 | 默认值 |
+| --- | --- |
+| CIDR | `192.168.3.0/24, 192.168.4.0/24` |
+| 端口 | `22, 80, 443, 135, 139, 445, 3389, 8080` |
+| 并发线程 | `64` |
+| 超时 | `1` 秒 |
+
+显式传入 `--output` 时使用指定目录；开发运行默认输出到 `.artifacts/results/`，Windows EXE 默认输出到 `%LOCALAPPDATA%\靶场扫描助手\scan_results\`。
+
+## 输出结果
+
+每次扫描会在结果目录中生成：
+
+```text
+<result>/
+├─ report.html       # 可直接用浏览器打开的可视化报告
+├─ report.md         # Markdown 摘要
+├─ report.csv        # 表格化端口和主机数据
+├─ report.json       # 结构化原始结果
+├─ <ip>_<port>.html  # Web 首页快照
+├─ <ip>_<port>.png   # 可选首页截图
+└─ <ip>_<port>_icon.*# 可选 favicon
+```
+
+报告图表使用离线资源生成，不依赖外部 CDN；结果目录可以直接归档或交给后续脚本处理。
+
+## 架构概览
+
+```mermaid
+flowchart LR
+    UI[桌面 Web UI\nHTML CSS JS Chart.js] --> BRIDGE[pywebview API\nscanner_app/desktop/gui.py]
+    CLI[命令行入口\nscanner_app/cli] --> CORE[扫描核心\nscanner_app/core]
+    BRIDGE --> CORE
+    CORE --> PLATFORM[平台适配\nping / arp / hidden subprocess]
+    CORE --> SHOT[可选截图池\nPlaywright + Chromium]
+    CORE --> REPORT[报告生成\nHTML / MD / CSV / JSON]
+    REPORT --> DATA[.artifacts/results/]
+```
+
+核心设计原则：扫描器通过结构化事件向 GUI 和 CLI 提供进度；平台差异集中在 `platform_support.py`；页面资源和报告模板保持离线可用。
 
 ## 项目结构
 
 ```text
-scanner_app/
-  core/                # 扫描核心、平台适配、截图、报告
-  desktop/             # pywebview 桌面桥接层
-    web/               # HTML/CSS/JS/图标/Chart.js 等只读界面资源
-  cli/                 # 公网/内网命令行入口
-tests/                 # 单元测试、离线页面/报告测试和结构边界测试
-scripts/               # Windows 构建脚本与 PyInstaller 配置
-launchers/             # 每个平台一个双击启动器
-docs/assets/           # GitHub README 预览图片等文档素材
-.github/workflows/     # 跨平台 CI
+.
+├─ scanner_app/
+│  ├─ core/                 # 扫描、平台适配、截图、报告
+│  ├─ desktop/              # pywebview 桌面桥接与 Web UI
+│  └─ cli/                  # 公网/内网命令行入口
+├─ launchers/               # Windows VBS、macOS command 双击入口
+├─ scripts/                 # Windows/macOS 构建与发布脚本
+├─ tests/                   # 平台、目录、页面和报告测试
+├─ docs/assets/             # README 预览图等 GitHub 文档素材
+├─ .github/
+│  ├─ workflows/            # CI 与 macOS Release 打包
+│  ├─ ISSUE_TEMPLATE/       # Bug / Feature 表单
+│  ├─ dependabot.yml        # 依赖更新配置
+│  └─ PULL_REQUEST_TEMPLATE.md
+├─ CHANGELOG.md
+├─ CONTRIBUTING.md
+├─ SECURITY.md
+├─ CODE_OF_CONDUCT.md
+├─ LICENSE
+└─ README.md
 ```
 
-## 文件分类管理方案
+生成物统一放在 `.artifacts/`：虚拟环境、PyInstaller 临时目录、EXE、测试截图、扫描结果和本地发行包均不进入版本库。
 
-| 分类 | 固定位置 | 只负责什么 | 管理规则 |
-| --- | --- | --- | --- |
-| 项目入口与说明 | `README.md`、`requirements*.txt` | 使用说明、运行依赖、构建依赖 | 根目录只保留项目级入口文件，不放 Python 源码、页面资源或生成物 |
-| 运行代码 | `scanner_app/core/`、`scanner_app/cli/`、`scanner_app/desktop/` | 扫描、报告、平台适配、命令行和桌面桥接 | 按职责归档；核心逻辑不复制到根目录，页面文件不放进核心目录 |
-| 页面资源 | `scanner_app/desktop/web/` | HTML、CSS、JS、Chart.js 和应用图标 | `app_icon.svg` 是 VLUN 字标源文件，`app_icon.png` 是运行时和 Windows 构建使用的位图 |
-| 双击入口 | `launchers/` | macOS `.command` 和 Windows `.vbs` 启动器 | 只放用户入口，不放 EXE、虚拟环境或日志 |
-| 构建与发布 | `scripts/` | Windows/macOS 构建脚本和 PyInstaller 配置 | 只放构建配置，不放运行代码和构建结果 |
-| GitHub 文档素材 | `docs/assets/` | README 首页预览图等静态素材 | 不参与运行时打包，不放入 `scanner_app/desktop/web/` |
-| 自动化验证 | `tests/` | 平台、目录、页面和报告测试 | 测试截图统一写入 `.artifacts/test-shots/`，不写入源码目录 |
-| 本地生成物 | `.artifacts/` | 虚拟环境、构建临时文件、EXE、测试截图和扫描结果 | 已加入 Git 忽略；可删除后重建，发行时只取 `dist/` 中的 EXE |
+## 构建与发布
 
-清理规则：旧入口、重复实现和根目录散落源码直接删除；`__pycache__/`、构建临时目录和测试截图属于可重建缓存；当前发行 EXE、构建虚拟环境和扫描结果按需保留，不纳入版本库。目录边界由 `tests/test_project_structure.py` 固定检查。
+### Windows EXE
 
-## 验证
-
-```bash
-python -m compileall -q scanner_app tests
-python -m unittest -v tests.test_platform_support
-python -m unittest -v tests.test_project_structure
-python -m tests.test_charts
-python -m tests.test_report_charts
-```
-
-两个 Playwright 测试需要先执行 `python -m playwright install chromium`。
-
-推送到 GitHub 后，`.github/workflows/ci.yml` 会在 Windows 和 macOS runner 上分别执行语法检查、平台测试和两个图表测试；macOS runner 还会检查 `.command` 启动器语法与可执行权限。
-
-## 构建 Windows EXE
-
-在 Windows PowerShell 中执行：
+在 Windows PowerShell 执行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
 ```
 
-输出文件为 `.artifacts\dist\靶场扫描助手.exe`。默认命令生成精简版：内置 Python、pywebview 和项目页面资源，不内置 Chromium，因此文件体积显著更小，首页截图开关会显示为不可用。
+输出：`.artifacts\dist\靶场扫描助手.exe`。默认构建精简版，不内置 Chromium，EXE 使用 VLUN 多尺寸项目图标。
 
-需要截图能力时执行：
+需要 Chromium 的完整构建：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1 -IncludeChromium
 ```
 
-完整版会额外内置 Playwright 和 Chromium，适合需要离线截图的发行场景；`.artifacts/` 只用于本地构建和测试产物，不会进入版本库。两种 EXE 都不要求目标电脑单独安装 Python 或 pywebview。冻结版扫描结果写入当前 Windows 用户的 `%LOCALAPPDATA%\靶场扫描助手\scan_results\`，EXE 使用项目图标作为窗口和任务栏图标。
+### macOS 应用包
 
-发行包建议包含：`靶场扫描助手.exe`、`启动靶场扫描.vbs` 和本 README。不要把 `.artifacts/`、扫描结果、测试截图或缓存打进发行包。
-
-## 构建 macOS 应用包
-
-GitHub 的版本标签会自动触发 `.github/workflows/release-macos.yml`，分别在 Apple Silicon 和 Intel runner 上执行 `scripts/build_macos.sh`，生成：
-
-- `yucedu-vlunhub-scan-<版本>-macos-arm64.zip`
-- `yucedu-vlunhub-scan-<版本>-macos-x64.zip`
-
-本地 macOS 构建：
+在 macOS 上执行：
 
 ```bash
 RELEASE_VERSION=local bash ./scripts/build_macos.sh
 ```
 
-应用包使用项目 VLUN 图标，扫描结果写入项目目录下的 `.artifacts/results/`；macOS 发行包不内置 Chromium，首页截图功能需要源码环境额外安装浏览器。
+脚本会生成带项目图标的 `.app`，并根据当前机器架构生成 macOS ZIP。推送 `v*` 标签后，`.github/workflows/release-macos.yml` 会在 Apple Silicon 和 Intel runner 上自动构建并把两个 ZIP 上传到对应 Release。
 
-## 版本管理
+### 发行包组成
 
-扫描结果、测试截图、缓存和 macOS/Windows 系统文件已加入 `.gitignore`，不会进入版本库。项目保留双平台启动器，同时将平台差异集中在 `scanner_app/core/platform_support.py`，便于后续维护。
+- Windows：`靶场扫描助手.exe`、`启动靶场扫描.vbs`、`README.md`。
+- macOS：`靶场扫描助手.app`。
+- 不把 `.artifacts/`、测试截图、扫描结果、缓存或开发虚拟环境打进发行包。
 
-## 目录规范
+## 验证与质量门禁
 
-- 根目录只放项目说明、依赖清单、Git 配置和职责目录，不放运行代码、测试截图或构建产物。
-- `scanner_app/core/` 只放扫描、平台适配、截图和报告等运行核心。
-- `scanner_app/desktop/` 只放桌面桥接层和本地页面资源；`scanner_app/cli/` 只放命令行入口。
-- `tests/` 只放自动化测试；`scripts/` 只放构建配置；`launchers/` 只放双击启动器。
-- `docs/assets/` 只放 GitHub 文档预览素材，不参与应用运行和打包。
-- `.artifacts/` 是统一的本地生成目录，按 `venv/`、`build/`、`dist/`、`test-shots/`、`results/` 分类，已被 Git 忽略。
-- 根目录只允许保留项目入口所需的文档、依赖清单、CI 配置和职责目录；目录边界由 `tests/test_project_structure.py` 自动检查，旧版根目录脚本或新的散落产物会让 CI 直接失败。
+语法和目录边界：
 
-## 开发规范
+```bash
+python -B -m compileall -q scanner_app tests
+python -B -m unittest -v tests.test_platform_support tests.test_project_structure
+git diff --check
+```
 
-- 第一性原理：先确认入口、输入、核心处理、输出和平台边界，再决定文件归属；不按“哪里方便就放哪里”扩散代码。
-- 反向审查：每次移动或重命名后，反查旧路径、导入图、启动器、构建配置和文档，不只依赖正向测试通过。
-- 测试分层：先跑结构/路径和平台单元测试，再跑页面、报告和构建验证；测试产物统一落在 `.artifacts/`。
-- 调试方式：先复现边界条件，再从最终异常、产物位置和进程树反推根因；修复后保留能阻止回归的最小测试。
+页面和报告：
+
+```bash
+python -B -m tests.test_charts
+python -B -m tests.test_report_charts
+```
+
+GitHub Actions 会在 Windows 和 macOS 上执行语法、平台、项目结构、GUI 图表和报告图表检查；Windows runner 额外构建精简 EXE 并检查多尺寸图标，macOS runner 检查 `.command` 语法、可执行权限和启动烟测。
+
+## 常见问题
+
+### Windows 文件夹里仍显示旧图标
+
+资源管理器会缓存同一路径的图标。关闭文件夹后重新打开并按 `F5`；如果仍未刷新，把发行包解压到新目录再查看。最新 EXE 的内部资源包含 `16/24/32/48/64/128/256` 七种 VLUN 图标尺寸。
+
+### 精简版没有首页截图
+
+精简版刻意不把 Chromium 压进 EXE，以控制体积。开发环境执行 `python -m playwright install chromium`，Windows 使用 `build_windows.ps1 -IncludeChromium` 构建完整版本；macOS 应用包需要在源码环境中安装 Playwright 和 Chromium。
+
+### Windows 双击没有启动
+
+优先双击 `启动靶场扫描.vbs`，不要直接双击开发入口。确认 VBS 与 EXE 位于同一发行目录；如果从源码运行，先执行 `python -m scanner_app.desktop.gui` 检查依赖和具体错误。
+
+### macOS 首次打开被系统拦截
+
+当前发行包没有 Apple notarization。打开 Finder，右键 `靶场扫描助手.app`，选择“打开”并确认；开发环境也可以直接使用 `launchers/启动靶场扫描.command`。
+
+## 参与贡献
+
+欢迎提交 Bug、功能建议、跨平台修复和文档改进。请先阅读：
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [SECURITY.md](SECURITY.md)
+- [Pull Request 模板](.github/PULL_REQUEST_TEMPLATE.md)
+
+## 许可证
+
+本项目使用 [MIT License](LICENSE)。第三方资源遵循各自的许可证：页面中使用的 Chart.js 及其依赖信息保留在对应资源和发行包中。
+
+## 更新日志
+
+完整版本记录见 [CHANGELOG.md](CHANGELOG.md)，可下载版本和校验值见 [GitHub Releases](https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/releases)。

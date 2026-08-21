@@ -18,7 +18,12 @@ ALLOWED_ROOT_ENTRIES = {
     ".github",
     ".git",
     ".gitignore",
+    "CHANGELOG.md",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
     "README.md",
+    "SECURITY.md",
     "docs",
     "launchers",
     "requirements-build.txt",
@@ -97,6 +102,28 @@ class ProjectStructureTests(unittest.TestCase):
     def test_documentation_preview_asset_stays_outside_runtime_resources(self):
         self.assertEqual(visible_names(ROOT / "docs"), {"assets"})
         self.assertEqual(visible_names(ROOT / "docs" / "assets"), {"app-preview.png"})
+
+    def test_open_source_project_documents_are_present(self):
+        for name in (
+            "README.md",
+            "CHANGELOG.md",
+            "CONTRIBUTING.md",
+            "CODE_OF_CONDUCT.md",
+            "SECURITY.md",
+            "LICENSE",
+        ):
+            self.assertTrue((ROOT / name).is_file(), f"缺少开源项目文档：{name}")
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("docs/assets/app-preview.png", readme)
+        self.assertIn("actions/workflows/ci.yml", readme)
+        self.assertIn("mermaid", readme)
+        self.assertIn("8000–8020", readme)
+
+        self.assertTrue((ROOT / ".github" / "PULL_REQUEST_TEMPLATE.md").is_file())
+        self.assertTrue((ROOT / ".github" / "ISSUE_TEMPLATE" / "bug_report.yml").is_file())
+        self.assertTrue((ROOT / ".github" / "ISSUE_TEMPLATE" / "feature_request.yml").is_file())
+        self.assertTrue((ROOT / ".github" / "dependabot.yml").is_file())
 
     def test_test_files_stay_in_test_boundary(self):
         self.assertEqual(

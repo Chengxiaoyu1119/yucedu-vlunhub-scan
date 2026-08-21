@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 安全问题私下报告
+    url: https://github.com/Chengxiaoyu1119/yucedu-vlunhub-scan/security/advisories/new
+    about: 不要在公开 Issue 中发布敏感复现细节，请使用 Security Advisory。
