@@ -13,11 +13,14 @@ import re
 import shutil
 import subprocess
 import sys
+import asyncio
 from contextlib import contextmanager
 from pathlib import Path
 
 
 APP_NAME = "靶场扫描助手"
+PLAYWRIGHT_BROWSER_DIR_NAME = "playwright-browsers"
+PLAYWRIGHT_RUNTIME_DIR_NAME = "playwright-runtime"
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = PACKAGE_ROOT.parent
 RESOURCE_ROOT = Path(getattr(sys, "_MEIPASS", SOURCE_ROOT))
@@ -97,8 +100,6 @@ def hidden_asyncio_subprocesses():
         yield
         return
 
-    import asyncio
-
     original_exec = asyncio.create_subprocess_exec
     original_shell = asyncio.create_subprocess_shell
 
@@ -117,6 +118,44 @@ def hidden_asyncio_subprocesses():
     finally:
         asyncio.create_subprocess_exec = original_exec
         asyncio.create_subprocess_shell = original_shell
+
+
+@contextmanager
+def windows_proactor_event_loop():
+    """让 Windows 截图线程使用 Playwright 所需的 Proactor 事件循环。"""
+    if os.name != "nt":
+        yield
+        return
+
+    policy_type = getattr(asyncio, "WindowsProactorEventLoopPolicy", None)
+    if policy_type is None:
+        yield
+        return
+
+    previous_policy = asyncio.get_event_loop_policy()
+    asyncio.set_event_loop_policy(policy_type())
+    try:
+        yield
+    finally:
+        asyncio.set_event_loop_policy(previous_policy)
+
+
+def configure_playwright_browser_path() -> None:
+    """为冻结版程序选择发行包旁边的外置 Chromium 目录。
+
+    Windows EXE 保持精简体积，Chromium 放在同级
+    ``playwright-browsers`` 目录中。
+    """
+    if not getattr(sys, "frozen", False):
+        return
+
+    external_root = Path(sys.executable).resolve().parent / PLAYWRIGHT_BROWSER_DIR_NAME
+    if external_root.is_dir() and any(path.is_dir() for path in external_root.glob("chromium-*")):
+        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(external_root)
+
+    external_node = Path(sys.executable).resolve().parent / PLAYWRIGHT_RUNTIME_DIR_NAME / "node.exe"
+    if external_node.is_file():
+        os.environ["PLAYWRIGHT_NODEJS_PATH"] = str(external_node)
 
 
 def show_error(title: str, message: str) -> None:

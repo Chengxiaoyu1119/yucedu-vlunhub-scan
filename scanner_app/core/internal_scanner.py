@@ -38,6 +38,8 @@ from scanner_app.core.platform_support import (
 
 DEFAULT_CIDRS = ["192.168.3.0/24", "192.168.4.0/24"]
 DEFAULT_PORTS = [22, 80, 443, 135, 139, 445, 3389, 8080]
+DEFAULT_THREADS = 64
+DEFAULT_TIMEOUT = 1.0
 HTTP_PORTS = (80, 443, 8080)
 
 
@@ -137,7 +139,7 @@ def guess_os(ttl, open_ports, ssh_banner_text):
     return "未知", reasons
 
 
-def run_internal_scan(cidrs=None, ports=None, timeout=1.0, threads=200,
+def run_internal_scan(cidrs=None, ports=None, timeout=DEFAULT_TIMEOUT, threads=DEFAULT_THREADS,
                       output="", on_event=None, cancel=None) -> list:
     """内网发现主流程；返回存活主机列表（已写入报告）"""
     base_on_event = on_event or (lambda evt: None)

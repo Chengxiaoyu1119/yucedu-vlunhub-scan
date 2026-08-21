@@ -22,6 +22,7 @@ Windows 构建工具：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1 -Version local
 ```
 
 macOS 构建工具：
@@ -34,7 +35,8 @@ RELEASE_VERSION=local bash ./scripts/build_macos.sh
 
 - 保持 Windows 和 macOS 的功能、交互和视觉语言一致。
 - 扫描核心放在 `scanner_app/core/`；桌面桥接放在 `scanner_app/desktop/`；CLI 放在 `scanner_app/cli/`。
-- 新生成物写入 `.artifacts/`，不要把 EXE、截图、日志、缓存或虚拟环境提交到版本库。
+- 新生成物写入 `.artifacts/`，不要把 EXE、Chromium、截图、日志、缓存或虚拟环境提交到版本库。
+- Windows 发行目录必须同时保留 EXE、VBS、`playwright-browsers/` 和 `playwright-runtime/`，不能只拷贝 EXE。
 - 默认只实现本地靶场和安全教学所需的发现能力，不加入凭据爆破、漏洞利用、持久化或规避检测功能。
 - 修改默认配置时，同时更新 GUI、CLI、测试和 README 中的说明。
 
@@ -54,6 +56,7 @@ git diff --check
 - [ ] 增加或更新了能够阻止回归的测试。
 - [ ] 已运行与修改相关的最小验证，以及 README 中的项目检查。
 - [ ] 没有提交 `.artifacts/`、缓存、日志、扫描结果、截图或本地环境。
+- [ ] 文件放在正确的项目边界内，移动文件时同步更新结构测试和文档。
 - [ ] 如果修改跨平台行为，已分别说明 Windows 和 macOS 的验证情况。
 
 提交标题建议使用简短动词开头，例如 `Fix Windows app icon`、`Improve README quick start`。

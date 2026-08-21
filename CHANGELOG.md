@@ -4,7 +4,12 @@
 
 ## [Unreleased]
 
-- 持续完善跨平台打包、文档和社区协作入口。
+- Windows 默认发行包恢复公网首页截图：Playwright 运行时进入 EXE，Chromium 作为同级 `playwright-browsers/` 资源随包提供。
+- Windows 截图显式启动完整 Chromium 并绕过系统代理，兼容 `--no-shell` 发行资源，修复页面加载超时和截图回传失败。
+- 公网结果统一过滤为 Ping 存活、页面可访问且标题非空的靶场页面，报告、历史看板和站点卡片保持一致。
+- 增加 Windows 发行包组装脚本，统一 EXE、VBS、README、预览图和 Chromium 的文件边界。
+- 增加项目文件管理规范，明确源码、文档、测试和 `.artifacts/` 生成物归属。
+- 统一内网 CLI、GUI 和核心默认并发为 64。
 
 ## [v2.1.1] - 2026-08-21
 

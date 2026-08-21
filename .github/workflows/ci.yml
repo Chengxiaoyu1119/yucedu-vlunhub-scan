@@ -39,6 +39,9 @@ jobs:
       - name: Check project structure
         run: python -B -m unittest -v tests.test_project_structure
 
+      - name: Run screenshot runtime test
+        run: python -B -m unittest -v tests.test_screenshot
+
       - name: Run GUI chart tests
         run: python -B -m tests.test_charts
 
@@ -61,6 +64,10 @@ jobs:
           $icoBytes = [System.IO.File]::ReadAllBytes(".artifacts\build\靶场扫描助手.ico")
           $frameCount = [System.BitConverter]::ToUInt16($icoBytes, 4)
           if ($frameCount -lt 7) { throw "Windows ICO 未包含完整多尺寸图标帧：$frameCount" }
+          $browser = Get-ChildItem .artifacts\dist\playwright-browsers -Recurse -Filter chrome.exe -File |
+            Select-Object -First 1
+          if (-not $browser) { throw "发行目录没有完整 Chromium：.artifacts\dist\playwright-browsers" }
+          if ($browser.Length -lt 10MB) { throw "Chromium 主程序体积异常：$($browser.Length) bytes" }
 
       - name: Check macOS launcher
         if: runner.os == 'macOS'

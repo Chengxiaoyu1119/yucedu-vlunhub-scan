@@ -1,8 +1,4 @@
 ﻿[CmdletBinding()]
-param(
-    [switch]$IncludeChromium
-)
-
 $ErrorActionPreference = "Stop"
 
 $ScriptsRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -13,9 +9,38 @@ $BuildRoot = Join-Path $ProjectRoot ".artifacts"
 $DistRoot = Join-Path $BuildRoot "dist"
 $WorkRoot = Join-Path $BuildRoot "build"
 $BuildEnv = Join-Path $BuildRoot "venv"
+$RuntimeRoot = Join-Path $BuildRoot "runtime\windows"
+$BrowserCacheRoot = Join-Path $RuntimeRoot "playwright-browsers"
+$DistBrowserRoot = Join-Path $DistRoot "playwright-browsers"
+$DistPlaywrightRuntimeRoot = Join-Path $DistRoot "playwright-runtime"
 $IconPath = Join-Path $WorkRoot "靶场扫描助手.ico"
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 New-Item -ItemType Directory -Force -Path $WorkRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $RuntimeRoot | Out-Null
+
+function Install-PlaywrightChromium {
+    param(
+        [Parameter(Mandatory = $true)][string]$BrowserPath
+    )
+
+    $env:PLAYWRIGHT_BROWSERS_PATH = $BrowserPath
+
+    $existingBrowser = Get-ChildItem -LiteralPath $BrowserPath -Recurse -Filter "chrome.exe" -File -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($existingBrowser) {
+        Write-Host "复用已有 Chromium：$($existingBrowser.FullName)"
+        return
+    }
+
+    $installArgs = @("install", "chromium")
+    $installHelp = (& $BuildPython -m playwright install --help 2>&1 | Out-String)
+    if ($installHelp -match "--no-shell") {
+        # 截图只需要完整 Chromium；不下载 headless shell 可缩小发行包。
+        $installArgs += "--no-shell"
+    }
+    & $BuildPython -m playwright @installArgs
+    if ($LASTEXITCODE -ne 0) { throw "Chromium 准备失败，退出码：$LASTEXITCODE" }
+}
 
 function New-WindowsIconFromPng {
     param(
@@ -110,20 +135,10 @@ New-WindowsIconFromPng `
     -PngPath (Join-Path $ProjectRoot "scanner_app\desktop\web\app_icon.png") `
     -IcoPath $IconPath
 
-if ($IncludeChromium) {
-    Write-Host "构建完整版：安装 Playwright 并准备 Chromium..."
-    & $BuildPython -m pip install -r (Join-Path $ProjectRoot "requirements.txt")
-    if ($LASTEXITCODE -ne 0) { throw "运行时依赖安装失败，退出码：$LASTEXITCODE" }
-    $env:PLAYWRIGHT_BROWSERS_PATH = "0"
-    & $BuildPython -m playwright install chromium
-    if ($LASTEXITCODE -ne 0) { throw "Chromium 准备失败，退出码：$LASTEXITCODE" }
-    $env:VULANHUB_INCLUDE_CHROMIUM = "1"
-}
-else {
-    Write-Host "构建精简版：不内置 Chromium，EXE 仅保留扫描与桌面界面。"
-    Remove-Item Env:PLAYWRIGHT_BROWSERS_PATH -ErrorAction SilentlyContinue
-    $env:VULANHUB_INCLUDE_CHROMIUM = "0"
-}
+Write-Host "构建便携版：EXE 保持精简，Chromium 放在同级 playwright-browsers 目录。"
+Remove-Item -LiteralPath $DistBrowserRoot -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $BrowserCacheRoot | Out-Null
+Install-PlaywrightChromium -BrowserPath $BrowserCacheRoot
 
 $running = Get-Process -Name "靶场扫描助手" -ErrorAction SilentlyContinue
 if ($running) {
@@ -138,6 +153,31 @@ $OutputExe = Join-Path $DistRoot "靶场扫描助手.exe"
 if (-not (Test-Path -LiteralPath $OutputExe)) {
     throw "构建命令完成，但没有找到输出文件：$OutputExe"
 }
+
+if (-not (Test-Path -LiteralPath $BrowserCacheRoot)) {
+    throw "外置 Chromium 缓存目录不存在：$BrowserCacheRoot"
+}
+Copy-Item -LiteralPath $BrowserCacheRoot -Destination $DistBrowserRoot -Recurse -Force
+$browserExe = Get-ChildItem -LiteralPath $DistBrowserRoot -Recurse -Filter "chrome.exe" -File |
+    Select-Object -First 1
+if (-not $browserExe) {
+    throw "外置 Chromium 未生成 chrome.exe：$DistBrowserRoot"
+}
+$browserSizeMb = [math]::Round(
+    ((Get-ChildItem -LiteralPath $DistBrowserRoot -Recurse -File |
+        Measure-Object -Property Length -Sum).Sum) / 1MB, 1
+)
+Write-Host "外置 Chromium 已准备：$DistBrowserRoot（$browserSizeMb MB）"
+
+$PlaywrightNodePath = Join-Path $BuildEnv "Lib\site-packages\playwright\driver\node.exe"
+if (-not (Test-Path -LiteralPath $PlaywrightNodePath)) {
+    throw "Playwright Node 驱动不存在：$PlaywrightNodePath"
+}
+Remove-Item -LiteralPath $DistPlaywrightRuntimeRoot -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $DistPlaywrightRuntimeRoot | Out-Null
+Copy-Item -LiteralPath $PlaywrightNodePath `
+    -Destination (Join-Path $DistPlaywrightRuntimeRoot "node.exe") -Force
+Write-Host "外置 Playwright Node 驱动已准备：$DistPlaywrightRuntimeRoot\node.exe"
 
 $sizeMb = [math]::Round((Get-Item -LiteralPath $OutputExe).Length / 1MB, 1)
 Write-Host "构建完成：$OutputExe（$sizeMb MB）"

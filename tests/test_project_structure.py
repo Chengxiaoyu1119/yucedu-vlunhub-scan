@@ -96,7 +96,17 @@ class ProjectStructureTests(unittest.TestCase):
         )
         self.assertEqual(
             visible_names(ROOT / "scripts"),
-            {"build_macos.sh", "build_windows.ps1", "build_windows.spec"},
+            {
+                "build_macos.sh",
+                "build_windows.ps1",
+                "build_windows.spec",
+                "package_windows.ps1",
+                "pyinstaller_hooks",
+            },
+        )
+        self.assertEqual(
+            visible_names(ROOT / "scripts" / "pyinstaller_hooks"),
+            {"hook-playwright.async_api.py"},
         )
 
     def test_documentation_preview_asset_stays_outside_runtime_resources(self):
@@ -119,6 +129,9 @@ class ProjectStructureTests(unittest.TestCase):
         self.assertIn("actions/workflows/ci.yml", readme)
         self.assertIn("mermaid", readme)
         self.assertIn("8000–8020", readme)
+        self.assertIn("目录边界保持简单", readme)
+        self.assertIn("playwright-browsers/", readme)
+        self.assertIn("`.artifacts/`", readme)
 
         self.assertTrue((ROOT / ".github" / "PULL_REQUEST_TEMPLATE.md").is_file())
         self.assertTrue((ROOT / ".github" / "ISSUE_TEMPLATE" / "bug_report.yml").is_file())
@@ -134,6 +147,8 @@ class ProjectStructureTests(unittest.TestCase):
                 "test_platform_support.py",
                 "test_project_structure.py",
                 "test_report_charts.py",
+                "test_scanner_core.py",
+                "test_screenshot.py",
             },
         )
 
@@ -153,6 +168,7 @@ class ProjectStructureTests(unittest.TestCase):
         macos_launcher = (ROOT / "launchers" / "启动靶场扫描.command").read_text(encoding="utf-8")
         build_spec = (ROOT / "scripts" / "build_windows.spec").read_text(encoding="utf-8")
         macos_build = (ROOT / "scripts" / "build_macos.sh").read_text(encoding="utf-8")
+        package_script = (ROOT / "scripts" / "package_windows.ps1").read_text(encoding="utf-8")
 
         self.assertIn("shell.Run", windows_launcher)
         self.assertIn(", 0, False", windows_launcher)
@@ -162,19 +178,35 @@ class ProjectStructureTests(unittest.TestCase):
         self.assertIn('console=False', build_spec)
         self.assertIn('scanner_app/desktop/web', build_spec)
         self.assertIn('icon=str(ICON_PATH)', build_spec)
-        self.assertIn('INCLUDE_CHROMIUM', build_spec)
+        self.assertIn('collect_all("webview")', build_spec)
+        self.assertNotIn('.local-browsers', build_spec)
+        self.assertIn('hookspath', build_spec)
+        playwright_hook = (ROOT / "scripts" / "pyinstaller_hooks" / "hook-playwright.async_api.py").read_text(encoding="utf-8")
+        self.assertIn('collect_data_files("playwright")', playwright_hook)
+        self.assertIn('node.exe', playwright_hook)
         build_script = (ROOT / "scripts" / "build_windows.ps1").read_text(encoding="utf-8")
-        self.assertIn('[switch]$IncludeChromium', build_script)
         self.assertIn('New-WindowsIconFromPng', build_script)
         self.assertIn('sizes = @(16, 24, 32, 48, 64, 128, 256)', build_script)
         self.assertIn('$frame.Data.Length', build_script)
-        self.assertIn('VULANHUB_INCLUDE_CHROMIUM', build_script)
+        self.assertNotIn('IncludeChromium', build_script)
+        self.assertNotIn('VULANHUB_INCLUDE_CHROMIUM', build_script)
+        self.assertIn('PLAYWRIGHT_BROWSERS_PATH', build_script)
+        self.assertIn('playwright-browsers', build_script)
+        self.assertIn('installArgs = @("install", "chromium")', build_script)
+        self.assertIn('playwright-browsers', package_script)
+        self.assertIn('playwright-runtime', package_script)
+        self.assertIn('Compress-Archive', package_script)
+        screenshot_source = (ROOT / "scanner_app" / "core" / "screenshot.py").read_text(encoding="utf-8")
+        self.assertIn('BROWSER_ARGS', screenshot_source)
+        self.assertIn('executable_path', screenshot_source)
+        self.assertIn('SCREENSHOT_AVAILABLE', screenshot_source)
         self.assertIn('iconutil -c icns', macos_build)
         self.assertIn('PyInstaller', macos_build)
         self.assertIn('pyobjc-framework-WebKit', macos_build)
         self.assertNotIn('projectDir, "dist\\"', windows_launcher)
         build_requirements = (ROOT / "requirements-build.txt").read_text(encoding="utf-8")
         self.assertNotIn('-r requirements.txt', build_requirements)
+        self.assertIn('playwright>=1.40,<2', build_requirements)
 
     def test_public_scan_defaults_use_8000_to_8020(self):
         from scanner_app.core import scanner_core

@@ -7,6 +7,7 @@
   - cancel（threading.Event）置位后尽快停止，未执行的任务被丢弃，
     已在执行的任务最迟约 timeout 秒内自然结束
   - 返回结构化结果列表，并落盘 report.md / report.json / 各站 HTML 快照
+  - 公网结果只保留 Ping 存活、HTTP 可访问且页面标题非空的站点
 
 事件类型：
   scan_start      {targets, port_start, port_end, total_ports, results_dir}
@@ -17,7 +18,8 @@
   phase           {phase}                     # screenshots = 端口扫完等待截图
   screenshot_done {ip, port, ok, path, favicon, error}
   target_done     {ip, open_count, total, cancelled}
-  scan_done       {results_dir, cancelled, open_total, screenshot_total}
+  scan_done       {results_dir, cancelled, open_total, screenshot_total,
+                   qualified_target_total, qualified_site_total, report_available}
   error           {message}
 """
 
@@ -141,6 +143,22 @@ def fetch_http(ip: str, port: int, timeout: float) -> dict:
     return {"is_http": False, "error": last_err}
 
 
+def is_qualified_port(result: dict) -> bool:
+    """判断公网端口是否具备可展示的靶场页面。"""
+    return (
+        result.get("state") == "open"
+        and result.get("is_http") is True
+        and bool(str(result.get("title") or "").strip())
+    )
+
+
+def is_qualified_target(result: dict) -> bool:
+    """判断目标是否应进入公网结果、报告和历史记录。"""
+    if not (result.get("ping") or {}).get("alive"):
+        return False
+    return any(is_qualified_port(port) for port in (result.get("ports") or {}).values())
+
+
 def scan_port(ip: str, port: int, timeout: float, outdir: Path, cancel: threading.Event) -> dict:
     """单个端口：TCP 连接探测 → 开放则抓首页并保存 HTML 快照"""
     if cancel.is_set():
@@ -153,7 +171,7 @@ def scan_port(ip: str, port: int, timeout: float, outdir: Path, cancel: threadin
 
     info = fetch_http(ip, port, timeout)
     result = {"state": "open", "port": port, **info}
-    if info.get("is_http"):
+    if info.get("is_http") and str(info.get("title") or "").strip():
         snap = outdir / f"{ip}_{port}.html"
         snap.write_bytes(info["body"])
         result["snapshot"] = snap.name
@@ -167,9 +185,16 @@ def scan_target(ip: str, ports: range, timeout: float, threads: int,
     ping = ping_host(ip, timeout)
     on_event({"type": "ping", "ip": ip, **ping})
 
-    results = {"ip": ip, "ping": ping, "ports": {}}
+    results = {"ip": ip, "ping": ping, "ports": {}, "open_count": 0}
     total = len(ports)
     cancelled = False
+    if not ping.get("alive"):
+        # 公网结果只展示 Ping 存活的目标；提前结束端口探测，避免生成无效模块。
+        on_event({"type": "progress", "ip": ip, "done": total, "total": total})
+        on_event({"type": "target_done", "ip": ip, "open_count": 0,
+                  "qualified_count": 0, "total": total, "cancelled": False})
+        return results
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as ex:
         futmap = {ex.submit(scan_port, ip, p, timeout, outdir, cancel): p for p in ports}
         try:
@@ -182,8 +207,8 @@ def scan_target(ip: str, ports: range, timeout: float, threads: int,
                     r = fut.result()
                 except Exception as e:
                     r = {"state": "error", "port": port, "error": repr(e)}
-                results["ports"][str(port)] = r
-                if r["state"] == "open":
+                if is_qualified_port(r):
+                    results["ports"][str(port)] = r
                     on_event({"type": "port_found", "ip": ip, **r})
                 on_event({"type": "progress", "ip": ip, "done": i, "total": total})
         finally:
@@ -193,7 +218,7 @@ def scan_target(ip: str, ports: range, timeout: float, threads: int,
     open_count = sum(1 for r in results["ports"].values() if r["state"] == "open")
     results["open_count"] = open_count
     on_event({"type": "target_done", "ip": ip, "open_count": open_count,
-              "total": total, "cancelled": cancelled})
+              "qualified_count": open_count, "total": total, "cancelled": cancelled})
     return results
 
 
@@ -235,7 +260,7 @@ def run_scan(targets, port_start=DEFAULT_PUBLIC_PORT_START,
     pool = None
     if screenshots:
         from scanner_app.core import screenshot as shot_mod
-        if shot_mod.PLAYWRIGHT_OK:
+        if getattr(shot_mod, "SCREENSHOT_AVAILABLE", shot_mod.PLAYWRIGHT_OK):
             def on_shot_done(info):
                 if info["ok"]:
                     shot_map[(info["ip"], info["port"])] = info["path"]
@@ -246,7 +271,12 @@ def run_scan(targets, port_start=DEFAULT_PUBLIC_PORT_START,
             pool = shot_mod.ScreenshotPool(on_done=on_shot_done, out_dir=outdir)
             pool.start()
         else:
-            base_on_event({"type": "error", "message": "Playwright 未安装，本次扫描跳过截图"})
+            reason = getattr(
+                shot_mod,
+                "SCREENSHOT_UNAVAILABLE_REASON",
+                "Playwright/Chromium 不可用",
+            )
+            base_on_event({"type": "error", "message": f"{reason}，本次扫描跳过截图"})
 
     def wrapped_on_event(evt):
         if evt["type"] == "port_found" and evt.get("is_http") and pool is not None:
@@ -259,12 +289,16 @@ def run_scan(targets, port_start=DEFAULT_PUBLIC_PORT_START,
                    "results_dir": str(outdir)})
 
     all_results = []
+    scanned_results = []
     for ip in targets:
         if cancel.is_set():
             break
         try:
-            all_results.append(scan_target(ip, ports, timeout, threads,
-                                           outdir, wrapped_on_event, cancel))
+            result = scan_target(ip, ports, timeout, threads,
+                                 outdir, wrapped_on_event, cancel)
+            scanned_results.append(result)
+            if is_qualified_target(result):
+                all_results.append(result)
         except Exception as e:
             base_on_event({"type": "error", "message": f"扫描 {ip} 时出错：{e!r}"})
 
@@ -288,8 +322,13 @@ def run_scan(targets, port_start=DEFAULT_PUBLIC_PORT_START,
                       round(time.time() - scan_t0, 1))
 
     open_total = sum(t["open_count"] for t in all_results)
+    ping_alive_total = sum(1 for t in scanned_results if (t.get("ping") or {}).get("alive"))
     base_on_event({"type": "scan_done", "results_dir": str(outdir),
                    "cancelled": cancel.is_set(), "open_total": open_total,
                    "screenshot_total": len(shot_map),
+                   "ping_alive_total": ping_alive_total,
+                   "qualified_target_total": len(all_results),
+                   "qualified_site_total": open_total,
+                   "report_available": bool(all_results),
                    "duration": round(time.time() - scan_t0, 1)})
     return all_results

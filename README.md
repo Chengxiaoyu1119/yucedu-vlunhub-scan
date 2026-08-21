@@ -89,7 +89,7 @@
 
 | 平台 | 文件 | 启动方式 | 说明 |
 | --- | --- | --- | --- |
-| Windows x64 | `*-windows-x64.zip` | 解压后双击 `启动靶场扫描.vbs` | 内置 Python 和 pywebview；精简版不含 Chromium |
+| Windows x64 | `*-windows-x64.zip` | 解压后双击 `启动靶场扫描.vbs` | EXE、`playwright-browsers/`、`playwright-runtime/` 放在同一目录 |
 | macOS Apple Silicon | `*-macos-arm64.zip` | 解压后双击 `靶场扫描助手.app` | Apple Silicon；使用系统 WebKit |
 | macOS Intel | `*-macos-x64.zip` | 解压后双击 `靶场扫描助手.app` | Intel；使用系统 WebKit |
 
@@ -166,7 +166,9 @@ python -m scanner_app.cli.internal \
 | 结束端口 | `8020` | 默认范围终点，包含该端口 |
 | 并发线程 | `100` | TCP 探测并发量 |
 | 超时 | `2` 秒 | 连接和请求的单次超时 |
-| 首页截图 | 可选 | 精简发行包默认关闭；源码环境可启用 |
+| 首页截图 | 可选 | Windows 发行包默认可用；源码环境需安装 Chromium |
+
+公网结果页只保留三项同时满足的目标：Ping 存活、HTTP/HTTPS 首页可访问、页面 `<title>` 非空。Ping 不通、端口不是 Web 服务、页面访问失败或标题为空的目标不会生成站点卡片，也不会进入公网报告。
 
 ### 内网模式
 
@@ -220,7 +222,10 @@ flowchart LR
 │  ├─ desktop/              # pywebview 桌面桥接与 Web UI
 │  └─ cli/                  # 公网/内网命令行入口
 ├─ launchers/               # Windows VBS、macOS command 双击入口
-├─ scripts/                 # Windows/macOS 构建与发布脚本
+├─ scripts/                 # Windows/macOS 构建、打包与发布脚本
+│  ├─ build_windows.ps1
+│  ├─ package_windows.ps1
+│  └─ build_macos.sh
 ├─ tests/                   # 平台、目录、页面和报告测试
 ├─ docs/assets/             # README 预览图等 GitHub 文档素材
 ├─ .github/
@@ -236,7 +241,7 @@ flowchart LR
 └─ README.md
 ```
 
-生成物统一放在 `.artifacts/`：虚拟环境、PyInstaller 临时目录、EXE、测试截图、扫描结果和本地发行包均不进入版本库。
+目录边界保持简单：源码只放 `scanner_app/`，双击入口只放 `launchers/`，构建与打包只放 `scripts/`，测试只放 `tests/`，GitHub 展示素材只放 `docs/assets/`。虚拟环境、构建中间文件、EXE、外置 Chromium、截图运行时、测试截图、扫描结果和本地发行包统一放入 `.artifacts/`，不进入版本库。Windows 截图发行包必须同时保留 EXE、VBS、`playwright-browsers/` 和 `playwright-runtime/`。
 
 ## 构建与发布
 
@@ -248,13 +253,15 @@ flowchart LR
 powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
 ```
 
-输出：`.artifacts\dist\靶场扫描助手.exe`。默认构建精简版，不内置 Chromium，EXE 使用 VLUN 多尺寸项目图标。
+输出：`.artifacts\dist\靶场扫描助手.exe`、`.artifacts\dist\playwright-browsers\` 和 `.artifacts\dist\playwright-runtime\`。默认构建把 Chromium 与 Playwright Node 驱动放到 EXE 同级目录，因此 Windows 公网扫描可以直接截图，EXE 不再携带这两块大运行时。EXE 使用 VLUN 多尺寸项目图标。
 
-需要 Chromium 的完整构建：
+组装可直接发布的 ZIP：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1 -IncludeChromium
+powershell -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1 -Version vNEXT
 ```
+
+输出位于 `.artifacts\release\windows\`，包含 EXE、VBS、README、首页预览图、截图用 Chromium 和 Playwright Node 驱动。
 
 ### macOS 应用包
 
@@ -268,7 +275,7 @@ RELEASE_VERSION=local bash ./scripts/build_macos.sh
 
 ### 发行包组成
 
-- Windows：`靶场扫描助手.exe`、`启动靶场扫描.vbs`、`README.md`。
+- Windows：`靶场扫描助手.exe`、`启动靶场扫描.vbs`、`playwright-browsers/`、`playwright-runtime/`、`README.md` 和首页预览图。
 - macOS：`靶场扫描助手.app`。
 - 不把 `.artifacts/`、测试截图、扫描结果、缓存或开发虚拟环境打进发行包。
 
@@ -278,7 +285,7 @@ RELEASE_VERSION=local bash ./scripts/build_macos.sh
 
 ```bash
 python -B -m compileall -q scanner_app tests
-python -B -m unittest -v tests.test_platform_support tests.test_project_structure
+python -B -m unittest discover -v
 git diff --check
 ```
 
@@ -289,7 +296,7 @@ python -B -m tests.test_charts
 python -B -m tests.test_report_charts
 ```
 
-GitHub Actions 会在 Windows 和 macOS 上执行语法、平台、项目结构、GUI 图表和报告图表检查；Windows runner 额外构建精简 EXE 并检查多尺寸图标，macOS runner 检查 `.command` 语法、可执行权限和启动烟测。
+GitHub Actions 会在 Windows 和 macOS 上执行语法、平台、项目结构、截图运行时、GUI 图表和报告图表检查；Windows runner 额外构建带外置 Chromium 与 Node 驱动的精简 EXE，并检查多尺寸图标和发行资源，macOS runner 检查 `.command` 语法、可执行权限和启动烟测。
 
 ## 常见问题
 
@@ -297,9 +304,13 @@ GitHub Actions 会在 Windows 和 macOS 上执行语法、平台、项目结构�
 
 资源管理器会缓存同一路径的图标。关闭文件夹后重新打开并按 `F5`；如果仍未刷新，把发行包解压到新目录再查看。最新 EXE 的内部资源包含 `16/24/32/48/64/128/256` 七种 VLUN 图标尺寸。
 
-### 精简版没有首页截图
+### Windows 首页截图失败
 
-精简版刻意不把 Chromium 压进 EXE，以控制体积。开发环境执行 `python -m playwright install chromium`，Windows 使用 `build_windows.ps1 -IncludeChromium` 构建完整版本；macOS 应用包需要在源码环境中安装 Playwright 和 Chromium。
+Windows 发行版的 EXE 与截图运行时分离：确认 `playwright-browsers/`、`playwright-runtime/` 与 EXE 位于同一目录，不要只复制 EXE。重新解压完整 ZIP 后双击 `启动靶场扫描.vbs`。源码环境执行 `python -m playwright install chromium`；如果仍不可用，查看扫描日志中的 Chromium 路径提示。
+
+### 为什么 EXE 不大但发行 ZIP 较大
+
+Chromium 和截图驱动本身体积较大。项目把它们作为 EXE 同级资源打包，避免 EXE 变成几十或几百 MB，同时保留 Windows 公网首页截图功能；Windows 发行 ZIP 会明显大于单独 EXE，这是运行资源拆分后的结果。
 
 ### Windows 双击没有启动
 

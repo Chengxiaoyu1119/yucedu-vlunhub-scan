@@ -355,7 +355,29 @@ def _charts_section(specs):
 
 # ================= 公网 Web 靶场报告 =================
 
+def _qualified_public_results(results):
+    """报告层再过滤一次，避免旧版或外部调用写入无效公网目标。"""
+    qualified = []
+    for target in results:
+        if not (target.get("ping") or {}).get("alive"):
+            continue
+        ports = {
+            str(key): port
+            for key, port in (target.get("ports") or {}).items()
+            if port.get("state") == "open"
+            and port.get("is_http") is True
+            and bool(str(port.get("title") or "").strip())
+        }
+        if not ports:
+            continue
+        item = dict(target)
+        item["ports"] = ports
+        item["open_count"] = len(ports)
+        qualified.append(item)
+    return qualified
+
 def public_stats(results):
+    results = _qualified_public_results(results)
     targets = len(results)
     alive = sum(1 for t in results if t["ping"]["alive"])
     open_ports = sum(t.get("open_count", 0) for t in results)
@@ -368,6 +390,9 @@ def public_stats(results):
 
 def write_public_report(results, outdir: Path, port_start, port_end, threads, timeout,
                         ports=None, duration=None):
+    results = _qualified_public_results(results)
+    if not results:
+        return
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st = public_stats(results)
     if ports:

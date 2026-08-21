@@ -64,7 +64,7 @@ def print_event(evt):
             print(f"  [截图] {evt['ip']}:{evt['port']} 失败：{evt.get('error', '')}")
     elif t == "target_done":
         c = "（已取消）" if evt["cancelled"] else ""
-        print(f"  扫描完成{c}：开放端口 {evt['open_count']} 个 / 共 {evt['total']} 个")
+        print(f"  扫描完成{c}：保留靶场页面 {evt.get('qualified_count', 0)} 个 / 共 {evt['total']} 个端口")
     elif t == "error":
         print(f"  [错误] {evt['message']}")
 
@@ -93,7 +93,7 @@ def main():
         ping_desc = "ping 通" if t["ping"]["alive"] else "ping 不通"
         open_ports = sorted(r["port"] for r in t["ports"].values() if r["state"] == "open")
         port_desc = ", ".join(map(str, open_ports)) if open_ports else "无开放端口"
-        print(f"{t['ip']}：{ping_desc}；开放端口（{t['open_count']} 个）：{port_desc}")
+        print(f"{t['ip']}：{ping_desc}；靶场页面端口（{t['open_count']} 个）：{port_desc}")
 
 
 if __name__ == "__main__":

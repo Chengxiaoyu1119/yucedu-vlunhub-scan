@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """平台适配层回归测试，不依赖桌面 GUI 或真实网络。"""
 
-import asyncio
 import os
+import asyncio
 import subprocess
 import unittest
 
@@ -15,6 +15,7 @@ from scanner_app.core.platform_support import (
     resolve_output_dir,
     hidden_subprocess_kwargs,
     hidden_asyncio_subprocesses,
+    windows_proactor_event_loop,
 )
 
 
@@ -73,6 +74,17 @@ class PlatformSupportTests(unittest.TestCase):
                 self.assertIs(asyncio.create_subprocess_shell, original_shell)
         self.assertIs(asyncio.create_subprocess_exec, original_exec)
         self.assertIs(asyncio.create_subprocess_shell, original_shell)
+
+    def test_windows_event_loop_policy_is_restored(self):
+        original_policy = asyncio.get_event_loop_policy()
+        with windows_proactor_event_loop():
+            if os.name == "nt":
+                policy_type = getattr(asyncio, "WindowsProactorEventLoopPolicy", None)
+                if policy_type is not None:
+                    self.assertIsInstance(asyncio.get_event_loop_policy(), policy_type)
+            else:
+                self.assertIs(asyncio.get_event_loop_policy(), original_policy)
+        self.assertIs(asyncio.get_event_loop_policy(), original_policy)
 
 
 if __name__ == "__main__":

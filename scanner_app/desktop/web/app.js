@@ -131,8 +131,12 @@ function closeLightbox() { $("lightbox").hidden = true; }
 
 /* ---------- 公网：站点卡片 ---------- */
 
+function isQualifiedSiteEvent(evt) {
+  return evt && evt.is_http === true && Boolean(String(evt.title || "").trim());
+}
+
 function addSiteCard(evt) {
-  if ($("emptyHint")) $("emptyHint").remove();
+  if ($("emptyHint")) $("emptyHint").hidden = true;
   const card = document.createElement("div");
   card.className = "site-card";
   card.dataset.key = evt.ip + ":" + evt.port;
@@ -318,6 +322,25 @@ function resetResults() {
   $("scanSummary").hidden = true;
   const grid = $("resultsGrid");
   while (grid.firstChild) grid.removeChild(grid.firstChild);
+  const empty = document.createElement("div");
+  empty.className = "empty-hint";
+  empty.id = "emptyHint";
+  empty.innerHTML =
+    `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="1.4" stroke-linecap="round" opacity=".45"><circle cx="11" cy="11" r="6.5"/>` +
+    `<path d="m16 16 4.5 4.5"/></svg>` +
+    `<p>① 填入目标 IP 与端口范围 → ② 点击「开始扫描」</p>` +
+    `<p class="sub">仅展示 Ping 存活、页面可访问且标题非空的靶场</p>`;
+  grid.appendChild(empty);
+}
+
+function showPublicEmptyState() {
+  const empty = $("emptyHint");
+  if (!empty) return;
+  empty.hidden = false;
+  const paragraphs = empty.querySelectorAll("p");
+  if (paragraphs[0]) paragraphs[0].textContent = "没有符合条件的靶场页面";
+  if (paragraphs[1]) paragraphs[1].textContent = "仅展示 Ping 存活、页面可访问且标题非空的结果";
 }
 
 /* ---------- 内网：主机表格 ---------- */
@@ -587,6 +610,7 @@ function handleEvent(evt) {
     setScanning(false, scanMode);
     setBar(suffix, 100, evt.cancelled ? "扫描已停止" : "扫描完成");
     let summaryText;
+    const reportAvailable = evt.report_available !== false;
     if (scanMode === "internal") {
       const c = evt.counts || {};
       summaryText = `存活 ${c["存活主机"] || 0} 台 · Linux ${c["Linux"] || 0} · Windows ${c["Windows"] || 0}`;
@@ -604,7 +628,8 @@ function handleEvent(evt) {
         `<span class="sum-item">未知 <b>${c["未知"] || 0}</b></span>`;
       appendDashLink(sum2, "internalDash");
     } else {
-      summaryText = `发现 ${evt.open_total} 个开放端口、${evt.screenshot_total || 0} 张截图`;
+      const qualifiedSites = evt.qualified_site_total ?? evt.open_total ?? 0;
+      summaryText = `保留 ${qualifiedSites} 个靶场页面、${evt.screenshot_total || 0} 张截图`;
       logBanner(evt.cancelled ? "warn" : "success",
           (evt.cancelled ? "⚠ 扫描已停止" : "✅ 扫描完成") + `：${summaryText}`);
       renderPublicCharts();
@@ -615,15 +640,21 @@ function handleEvent(evt) {
         `<span class="sum-item">耗时 <b>${dur} s</b></span>` +
         `<span class="sum-item">目标 <b>${$("stTargets").textContent}</b> 个</span>` +
         `<span class="sum-item">ping 存活 <b>${$("stAlive").textContent}</b></span>` +
-        `<span class="sum-item">开放端口 <b>${evt.open_total}</b></span>` +
+        `<span class="sum-item">靶场端口 <b>${evt.open_total}</b></span>` +
         `<span class="sum-item">截图 <b>${evt.screenshot_total || 0}</b></span>`;
       appendDashLink(sumEl, "publicDash");
     }
     /* 完成提示音（失败静默） */
     try { if (pywebview.api.play_sound) pywebview.api.play_sound(); } catch (e) { /* 忽略 */ }
-    log("info", `分类报告已保存：${evt.results_dir}（report.html / report.md / report.csv）`);
+    if (scanMode === "public" && !reportAvailable) {
+        showPublicEmptyState();
+        $("btnReport").hidden = true;
+        log("info", "没有符合条件的靶场页面，已过滤 Ping 不通、页面不可访问或标题为空的目标");
+      } else {
+        log("info", `分类报告已保存：${evt.results_dir}（report.html / report.md / report.csv）`);
+      }
     const btnReport = $("btnReport" + suffix);
-    if (currentResultsDir) {
+    if (currentResultsDir && reportAvailable) {
       btnReport.hidden = false;
       btnReport.onclick = () => pywebview.api.open_report(currentResultsDir + "/report.html");
     }
@@ -694,7 +725,7 @@ function handleEvent(evt) {
         $("stAlive").textContent = (parseInt($("stAlive").textContent, 10) || 0) + 1;
         log("success", `ping ${evt.ip} 通${evt.latency_ms != null ? `（${evt.latency_ms.toFixed(1)} ms）` : ""}`);
       } else {
-        log("warn", `ping ${evt.ip} 不通（云服务器可能禁 ICMP，继续端口扫描）`);
+        log("info", `ping ${evt.ip} 不通，已过滤该目标`);
       }
       break;
     case "progress": {
@@ -703,6 +734,7 @@ function handleEvent(evt) {
       break;
     }
     case "port_found":
+      if (!isQualifiedSiteEvent(evt)) break;
       openCount++;
       pubPorts.push(evt);
       $("resultCount").hidden = false;
@@ -712,11 +744,7 @@ function handleEvent(evt) {
         $("stSites").textContent = (parseInt($("stSites").textContent, 10) || 0) + 1;
       }
       addSiteCard(evt);
-      if (evt.is_http) {
-        log("success", `${evt.ip}:${evt.port} 开放  ${evt.scheme} 状态 ${evt.status}  title: ${evt.title || "(无)"}`);
-      } else {
-        log("warn", `${evt.ip}:${evt.port} 开放（非 HTTP）`);
-      }
+      log("success", `${evt.ip}:${evt.port} 开放  ${evt.scheme} 状态 ${evt.status}  title: ${evt.title}`);
       break;
     case "phase":
       if (evt.phase === "screenshots") {
@@ -734,7 +762,7 @@ function handleEvent(evt) {
       break;
     case "target_done":
       targetsDone++;
-      log("info", `目标 ${evt.ip} 完成${evt.cancelled ? "（已取消）" : ""}：开放端口 ${evt.open_count}/${evt.total}`);
+      log("info", `目标 ${evt.ip} 完成${evt.cancelled ? "（已取消）" : ""}：保留页面 ${evt.qualified_count || 0}`);
       break;
   }
 }
@@ -1418,7 +1446,7 @@ async function init() {
       $("inpShots").checked = false;
       $("inpShots").disabled = true;
       $("inpShots").closest(".field-check").classList.add("unsupported");
-      log("warn", "当前 Windows 精简版未内置 Chromium，首页截图已关闭；需要时用 build_windows.ps1 -IncludeChromium 构建完整版");
+      log("warn", cfg.screenshots_error || "当前运行环境没有可用 Chromium，首页截图已关闭");
     }
     const icfg = await pywebview.api.get_internal_config();
     $("inpCidrs").value = icfg.cidrs;

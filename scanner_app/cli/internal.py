@@ -21,8 +21,10 @@ def parse_args():
                    help="目标网段 CIDR，逗号分隔（默认：192.168.3.0/24,192.168.4.0/24）")
     p.add_argument("--ports", default=",".join(map(str, internal_scanner.DEFAULT_PORTS)),
                    help="探测端口，逗号分隔（默认：22,80,443,135,139,445,3389,8080）")
-    p.add_argument("--timeout", type=float, default=1.0, help="单次探测超时秒数（默认 1）")
-    p.add_argument("--threads", type=int, default=200, help="并发线程数（默认 200）")
+    p.add_argument("--timeout", type=float, default=internal_scanner.DEFAULT_TIMEOUT,
+                   help="单次探测超时秒数（默认 1）")
+    p.add_argument("--threads", type=int, default=internal_scanner.DEFAULT_THREADS,
+                   help="并发线程数（默认 64）")
     p.add_argument("--output", default="", help="结果输出目录（默认 .artifacts/results/internal_<时间戳>）")
     args = p.parse_args()
     try:

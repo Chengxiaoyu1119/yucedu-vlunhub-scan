@@ -56,15 +56,16 @@ class Api:
             "port_end": scanner_core.DEFAULT_PUBLIC_PORT_END,
             "threads": 100,
             "timeout": 2.0,
-            "screenshots_available": bool(screenshot.PLAYWRIGHT_OK),
+            "screenshots_available": bool(screenshot.SCREENSHOT_AVAILABLE),
+            "screenshots_error": screenshot.SCREENSHOT_UNAVAILABLE_REASON,
         }
 
     def get_internal_config(self):
         return {
             "cidrs": ", ".join(internal_scanner.DEFAULT_CIDRS),
             "ports": ", ".join(map(str, internal_scanner.DEFAULT_PORTS)),
-            "threads": 64,   # 内网扫描并发下调：508 IP × 8 端口场景下降低 CPU/网络压力
-            "timeout": 1.0,
+            "threads": internal_scanner.DEFAULT_THREADS,
+            "timeout": internal_scanner.DEFAULT_TIMEOUT,
         }
 
     # ---------- 扫描控制 ----------
@@ -296,8 +297,10 @@ class Api:
         if isinstance(data, list):
             ports = []
             for t in data:
+                if not scanner_core.is_qualified_target(t):
+                    continue
                 for r in (t.get("ports") or {}).values():
-                    if r.get("state") == "open":
+                    if scanner_core.is_qualified_port(r):
                         ports.append({"ip": t.get("ip"), "port": r.get("port"),
                                       "is_http": bool(r.get("is_http")),
                                       "scheme": r.get("scheme", ""),
@@ -337,10 +340,17 @@ class Api:
                         "report_html": (d / "report.html").is_file(),
                     })
                 elif isinstance(data, list):
-                    open_total = sum(t.get("open_count", 0) for t in data)
+                    valid_data = [t for t in data if scanner_core.is_qualified_target(t)]
+                    if not valid_data:
+                        continue
+                    open_total = sum(
+                        sum(1 for r in (t.get("ports") or {}).values()
+                            if scanner_core.is_qualified_port(r))
+                        for t in valid_data
+                    )
                     items.append({
                         "name": d.name, "path": str(d), "time": time_str, "kind": "public",
-                        "targets": [t.get("ip", "?") for t in data],
+                        "targets": [t.get("ip", "?") for t in valid_data],
                         "summary": f"开放端口 {open_total} 个",
                         "report_html": (d / "report.html").is_file(),
                     })
