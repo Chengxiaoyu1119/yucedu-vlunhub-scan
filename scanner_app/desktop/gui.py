@@ -52,8 +52,8 @@ class Api:
     def get_config(self):
         return {
             "targets": ", ".join(scanner_core.DEFAULT_TARGETS),
-            "port_start": 8000,
-            "port_end": 8099,
+            "port_start": scanner_core.DEFAULT_PUBLIC_PORT_START,
+            "port_end": scanner_core.DEFAULT_PUBLIC_PORT_END,
             "threads": 100,
             "timeout": 2.0,
             "screenshots_available": bool(screenshot.PLAYWRIGHT_OK),

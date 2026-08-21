@@ -44,6 +44,8 @@ from scanner_app.core.platform_support import (
 UA = user_agent()
 MAX_BODY = 512 * 1024  # 首页最多抓取 512KB
 DEFAULT_TARGETS = ["43.139.231.237", "43.139.149.11"]
+DEFAULT_PUBLIC_PORT_START = 8000
+DEFAULT_PUBLIC_PORT_END = 8020
 # 复用 SSL 上下文（跳过证书校验，适用于靶场常见自签证书）
 _SSL_CTX = ssl._create_unverified_context()
 # 直连 opener（禁用系统代理，靶场扫描必须连目标本身；HTTPS 用跳过校验的 context）
@@ -203,7 +205,8 @@ def write_reports(results: list, outdir: Path, port_start: int, port_end: int,
                                 ports, duration)
 
 
-def run_scan(targets, port_start=8000, port_end=8099, timeout=2.0, threads=100,
+def run_scan(targets, port_start=DEFAULT_PUBLIC_PORT_START,
+             port_end=DEFAULT_PUBLIC_PORT_END, timeout=2.0, threads=100,
              output="", on_event=None, cancel=None, screenshots=True, ports=None) -> list:
     """执行一次完整扫描；targets 为 IP 字符串列表。
     支持两种端口模式：ports 列表（显式端口集合）或 port_start/port_end 范围。"""

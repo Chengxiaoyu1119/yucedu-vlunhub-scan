@@ -3,7 +3,7 @@
 """靶场扫描 CLI 入口（核心逻辑在 scanner_core.py，GUI 与 CLI 共用）
 
 用法：
-  python3 -m scanner_app.cli.public                   # 默认扫描两个靶场 IP 的 8000-8099
+  python3 -m scanner_app.cli.public                   # 默认扫描两个靶场 IP 的 8000-8020
   python3 -m scanner_app.cli.public --port-end 8199   # 自定义端口上限
   python3 -m scanner_app.cli.public --targets 1.2.3.4 # 自定义目标 IP
 """
@@ -18,8 +18,10 @@ def parse_args():
     p = argparse.ArgumentParser(description="靶场端口扫描 + 网站首页抓取脚本")
     p.add_argument("--targets", default=",".join(scanner_core.DEFAULT_TARGETS),
                    help="目标 IP，逗号分隔（默认：43.139.231.237,43.139.149.11）")
-    p.add_argument("--port-start", type=int, default=8000, help="起始端口（默认 8000）")
-    p.add_argument("--port-end", type=int, default=8099, help="结束端口（默认 8099）")
+    p.add_argument("--port-start", type=int, default=scanner_core.DEFAULT_PUBLIC_PORT_START,
+                   help="起始端口（默认 8000）")
+    p.add_argument("--port-end", type=int, default=scanner_core.DEFAULT_PUBLIC_PORT_END,
+                   help="结束端口（默认 8020）")
     p.add_argument("--timeout", type=float, default=2.0, help="连接/请求超时秒数（默认 2）")
     p.add_argument("--threads", type=int, default=100, help="并发线程数（默认 100）")
     p.add_argument("--output", default="", help="结果输出目录（默认 .artifacts/results/<时间戳>）")

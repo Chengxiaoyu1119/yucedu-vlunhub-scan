@@ -81,7 +81,7 @@ MOCK_INTERNAL_HOSTS = [
 STUB = """
 window.pywebview = {
   api: {
-    get_config: async () => ({targets: "1.1.1.1", port_start: 8000, port_end: 8099, threads: 100, timeout: 2}),
+    get_config: async () => ({targets: "1.1.1.1", port_start: 8000, port_end: 8020, threads: 100, timeout: 2}),
     get_internal_config: async () => ({cidrs: "192.168.3.0/24", ports: "22,80", threads: 200, timeout: 1}),
     poll_events: async () => [],
     screenshot_data: async () => ({error: "no file"}),

@@ -23,23 +23,66 @@ function New-WindowsIconFromPng {
         [Parameter(Mandatory = $true)][string]$IcoPath
     )
 
-    # Windows 的 ICO 可以直接包含 PNG 图像帧；不需要 Pillow 或额外转换工具。
-    $png = [System.IO.File]::ReadAllBytes($PngPath)
+    # 生成多尺寸 PNG 图像帧，避免单帧 1024px PNG 被 Windows 外壳当作无效图标。
+    Add-Type -AssemblyName System.Drawing
+    $source = [System.Drawing.Image]::FromFile($PngPath)
+    $sizes = @(16, 24, 32, 48, 64, 128, 256)
+    $frames = @()
+    try {
+        foreach ($size in $sizes) {
+            $bitmap = [System.Drawing.Bitmap]::new(
+                $size,
+                $size,
+                [System.Drawing.Imaging.PixelFormat]::Format32bppArgb
+            )
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            $frameStream = [System.IO.MemoryStream]::new()
+            try {
+                $graphics.Clear([System.Drawing.Color]::Transparent)
+                $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
+                $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                $graphics.DrawImage($source, 0, 0, $size, $size)
+                $bitmap.Save($frameStream, [System.Drawing.Imaging.ImageFormat]::Png)
+                $frames += [PSCustomObject]@{
+                    Size = $size
+                    Data = $frameStream.ToArray()
+                }
+            }
+            finally {
+                $frameStream.Dispose()
+                $graphics.Dispose()
+                $bitmap.Dispose()
+            }
+        }
+    }
+    finally {
+        $source.Dispose()
+    }
+
     $stream = [System.IO.File]::Open($IcoPath, [System.IO.FileMode]::Create)
     $writer = [System.IO.BinaryWriter]::new($stream)
     try {
         $writer.Write([uint16]0)             # reserved
         $writer.Write([uint16]1)             # icon type
-        $writer.Write([uint16]1)             # image count
-        $writer.Write([byte]0)               # width: 256
-        $writer.Write([byte]0)               # height: 256
-        $writer.Write([byte]0)               # color count
-        $writer.Write([byte]0)               # reserved
-        $writer.Write([uint16]1)             # color planes
-        $writer.Write([uint16]32)            # bits per pixel
-        $writer.Write([uint32]$png.Length)  # image bytes
-        $writer.Write([uint32]22)            # image offset
-        $writer.Write($png)
+        $writer.Write([uint16]$frames.Count) # image count
+        $offset = 6 + (16 * $frames.Count)
+        foreach ($frame in $frames) {
+            $dimension = if ($frame.Size -eq 256) { [byte]0 } else { [byte]$frame.Size }
+            $writer.Write($dimension)         # width
+            $writer.Write($dimension)         # height
+            $writer.Write([byte]0)            # color count
+            $writer.Write([byte]0)            # reserved
+            $writer.Write([uint16]1)          # color planes
+            $writer.Write([uint16]32)         # bits per pixel
+            $writer.Write([uint32]$frame.Data.Length)
+            $writer.Write([uint32]$offset)
+            $offset += $frame.Data.Length
+        }
+        foreach ($frame in $frames) {
+            $writer.Write($frame.Data)
+        }
     }
     finally {
         $writer.Dispose()
